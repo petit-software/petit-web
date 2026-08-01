@@ -123,6 +123,25 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   const elementsRef = useRef(new Map<number, HTMLDivElement>());
   const [hoveredKey, setHoveredKey] = useState<number | null>(null);
 
+  // React bubbles portal content (the Sheet) through the *React* tree, not
+  // the DOM tree — so onMouseLeave never fires on the tile/container behind
+  // an open sheet while the cursor is anywhere inside it, leaving pausedRef
+  // and hoveredKey stuck. anyOpen forces both back to their neutral state
+  // regardless, rather than depending on the stuck hover signal.
+  const anyOpen = openId != null;
+  const anyOpenRef = useRef(false);
+  useEffect(() => {
+    anyOpenRef.current = anyOpen;
+  }, [anyOpen]);
+  useEffect(() => {
+    setHoveredKey(null);
+    // Also reset the stuck hover-pause directly: once a sheet has been
+    // opened, the container's real onMouseLeave may never fire again (same
+    // portal-bubbling issue), so closing it would otherwise leave drift
+    // paused forever even though the cursor visually left the ticker.
+    pausedRef.current = false;
+  }, [anyOpen]);
+
   // User scroll (wheel/trackpad) drives offsetRef directly, in either
   // direction. Must be a native, non-passive listener so preventDefault
   // (which stops the page from also scrolling vertically) actually works.
@@ -150,7 +169,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
       if (last === null) last = now;
       const dt = (now - last) / 1000;
       last = now;
-      if (!pausedRef.current) offsetRef.current += SPEED * dt;
+      if (anyOpenRef.current || !pausedRef.current) offsetRef.current += SPEED * dt;
 
       const current = slotsRef.current;
       const aheadEdge = (visibleCountRef.current + BUFFER) * STEP;
@@ -273,7 +292,11 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
               <div
                 className={cn(
                   "origin-bottom transition-transform duration-300 ease-out",
-                  isHovered ? "scale-105" : hoveredKey !== null ? "scale-95" : "scale-100",
+                  !anyOpen && isHovered
+                    ? "scale-105"
+                    : !anyOpen && hoveredKey !== null
+                      ? "scale-95"
+                      : "scale-100",
                 )}
                 onMouseEnter={() => setHoveredKey(slot.key)}
                 onMouseLeave={() => setHoveredKey((k) => (k === slot.key ? null : k))}
