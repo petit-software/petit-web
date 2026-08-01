@@ -51,12 +51,16 @@ function ProductMedia({
 }
 
 export default function ProductCard({ product, open, onOpenChange }: ProductCardProps) {
+  // modal={false}: skip Radix's body scroll-lock (react-remove-scroll). The
+  // ticker already runs its own wheel-interception to drive the belt;
+  // layering Radix's generic lock on top of that caused wheel events to stop
+  // working intermittently after a dialog open/close cycle. This page has
+  // no native scroll to lock anyway (md:overflow-hidden).
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger className="w-full rounded-[32px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        {/* Concentric radius: outer 32px = inner 12px + 20px padding. */}
-        <Card className="cursor-pointer rounded-[32px] bg-card p-[20px]">
-          <ProductMedia product={product} className="aspect-square rounded-[12px]" sizes="25vw" />
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
+      <DialogTrigger className="w-full rounded-[24px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Card className="cursor-pointer rounded-[24px] bg-muted p-[20px] ring-0">
+          <ProductMedia product={product} className="aspect-square rounded-[14px]" sizes="25vw" />
           <CardHeader className="px-0">
             <CardTitle>{product.name}</CardTitle>
             <CardDescription>{product.description}</CardDescription>

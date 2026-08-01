@@ -15,6 +15,12 @@ const STEP = TILE_WIDTH + GAP;
 const BUFFER = 5;
 const SPEED = 28; // px/sec ambient drift
 
+// How many of the initially visible tiles get a staggered entrance.
+const ENTRANCE_COUNT = 6;
+const ENTRANCE_DURATION = 450; // ms
+const ENTRANCE_STAGGER = 70; // ms between tiles
+const ENTRANCE_EASE = "cubic-bezier(0.215, 0.61, 0.355, 1)"; // ease-out-cubic
+
 interface Slot {
   key: number;
   order: number;
@@ -23,13 +29,17 @@ interface Slot {
 
 interface ProductTickerProps {
   products: Product[];
+  /** True once the belt has finished sliding into view (see HomeGrid). Gates
+   *  the tile entrance so it starts in the same commit as the title reveal
+   *  instead of racing it via a separately-scheduled timer. */
+  revealed?: boolean;
 }
 
 // Infinite horizontal marquee of product tiles. Renders a fixed-size window
 // of slots (visible + BUFFER ahead + BUFFER behind) and recycles a slot to
 // the front of the belt once it scrolls fully past the back buffer, instead
 // of mounting the product list over and over.
-export default function ProductTicker({ products }: ProductTickerProps) {
+export default function ProductTicker({ products, revealed = false }: ProductTickerProps) {
   const reduce = useReducedMotion();
   const router = useRouter();
   const pathname = usePathname();
@@ -76,6 +86,12 @@ export default function ProductTicker({ products }: ProductTickerProps) {
   const nextProductRef = useRef(0);
   const prevProductRef = useRef(-1);
 
+  // The first ENTRANCE_COUNT on-screen tiles (order 0..ENTRANCE_COUNT-1) get
+  // a one-time staggered reveal. Captured once, from the first slot batch,
+  // so later recycles/resizes never re-trigger it.
+  const entranceKeysRef = useRef<Set<number> | null>(null);
+  const [playEntrance, setPlayEntrance] = useState(false);
+
   // Grow the slot window to fill wider viewports. Never shrinks — a few
   // extra off-screen slots after a resize are harmless.
   useEffect(() => {
@@ -88,9 +104,19 @@ export default function ProductTicker({ products }: ProductTickerProps) {
         productIndex: nextProductRef.current++ % products.length,
       });
     }
+    if (entranceKeysRef.current === null) {
+      entranceKeysRef.current = new Set(
+        next.filter((slot) => slot.order >= 0 && slot.order < ENTRANCE_COUNT).map((slot) => slot.key),
+      );
+    }
     slotsRef.current = next;
     setSlots(next);
   }, [slotCount, products.length]);
+
+  useEffect(() => {
+    if (reduce || !revealed) return;
+    setPlayEntrance(true);
+  }, [reduce, revealed]);
 
   const offsetRef = useRef(0);
   const pausedRef = useRef(false);
@@ -216,6 +242,7 @@ export default function ProductTicker({ products }: ProductTickerProps) {
       {slots.map((slot) => {
         const product = products[slot.productIndex];
         const isHovered = slot.key === hoveredKey;
+        const isEntranceTile = entranceKeysRef.current?.has(slot.key) ?? false;
         return (
           <div
             key={slot.key}
@@ -231,18 +258,32 @@ export default function ProductTicker({ products }: ProductTickerProps) {
             }}
           >
             <div
-              className={cn(
-                "origin-bottom transition-transform duration-300 ease-out",
-                isHovered ? "scale-105" : hoveredKey !== null ? "scale-95" : "scale-100",
-              )}
-              onMouseEnter={() => setHoveredKey(slot.key)}
-              onMouseLeave={() => setHoveredKey((k) => (k === slot.key ? null : k))}
+              className={cn("origin-bottom", isEntranceTile && "will-change-transform")}
+              style={
+                isEntranceTile
+                  ? {
+                      opacity: playEntrance ? 1 : 0,
+                      transform: `scale(${playEntrance ? 1 : 0.94})`,
+                      transition: `opacity ${ENTRANCE_DURATION}ms ${ENTRANCE_EASE}, transform ${ENTRANCE_DURATION}ms ${ENTRANCE_EASE}`,
+                      transitionDelay: `${slot.order * ENTRANCE_STAGGER}ms`,
+                    }
+                  : undefined
+              }
             >
-              <ProductCard
-                product={product}
-                open={slot.key === openSlotKey}
-                onOpenChange={(open) => setOpen(product.id, open)}
-              />
+              <div
+                className={cn(
+                  "origin-bottom transition-transform duration-300 ease-out",
+                  isHovered ? "scale-105" : hoveredKey !== null ? "scale-95" : "scale-100",
+                )}
+                onMouseEnter={() => setHoveredKey(slot.key)}
+                onMouseLeave={() => setHoveredKey((k) => (k === slot.key ? null : k))}
+              >
+                <ProductCard
+                  product={product}
+                  open={slot.key === openSlotKey}
+                  onOpenChange={(open) => setOpen(product.id, open)}
+                />
+              </div>
             </div>
           </div>
         );

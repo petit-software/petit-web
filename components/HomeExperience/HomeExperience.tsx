@@ -5,8 +5,7 @@ import HomeGrid from "@/components/HomeGrid";
 import HomeIntro from "@/components/HomeIntro";
 import type { Product } from "@/lib/products";
 
-// Placeholder — swap for real hero copy.
-const TITLE = "Petit makes small, focused tools that quietly get out of your way.";
+const TITLE = "A boutique AI studio. Zürich + remote. We build AI agents that pay for themselves.";
 
 interface HomeExperienceProps {
   products: Product[];

@@ -48,10 +48,14 @@ Marketing site for Petit. The codebase is built around a **landing-page template
 │  ├─ metadata.ts                    # Next Metadata helpers
 │  └─ structured-data.ts             # JSON-LD generation
 ├─ content/
-│  └─ landing/<slug>.md              # one file per landing page
+│  ├─ landing/<slug>.md              # one file per landing page
+│  └─ products/<slug>/               # one folder per product (ticker tile)
+│     ├─ index.md                    # frontmatter + long-form body
+│     └─ cover.png|jpg|webp|...      # optional, auto-detected by filename
 ├─ public/
 │  ├─ fonts/                         # Die Grotesk A woff2 files
-│  └─ blog/<slug>/                   # per-page image folder
+│  ├─ blog/<slug>/                   # per-landing-page image folder
+│  └─ products/<slug>/               # generated — mirrored from content/products at build/dev time, gitignored
 ├─ components.json                   # shadcn config
 ├─ postcss.config.mjs
 └─ package.json
@@ -65,6 +69,16 @@ Marketing site for Petit. The codebase is built around a **landing-page template
 4. Done — the page is live at `/my-new-page`.
 
 Only slugs in the registry are built (`dynamicParams = false`).
+
+## Adding a new product
+
+Products (the tiles in the home page's `ProductTicker`) are auto-discovered — there's no registry to edit.
+
+1. Create `content/products/<slug>/index.md` with frontmatter `name`, `description`, `url` (all required), and optional `imageAlt`. Body markdown becomes the long-form text shown in the product's modal.
+2. Name the cover image `cover.<ext>` (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg`, or `.avif`) and drop it directly in that same folder — no frontmatter field needed, `lib/products.ts` auto-detects it by filename, copies it to `public/products/<slug>/`, and rewrites the path. Don't add images to `public/` by hand.
+3. That's it — `getProducts()` reads every folder under `content/products/`, sorted alphabetically by slug, and the ticker picks it up on the next dev reload or build. No slug list, no import to add.
+
+`public/products/` is gitignored — it's a generated mirror of `content/products/<slug>/*`, not a source of truth.
 
 ## Markdown frontmatter contract
 
