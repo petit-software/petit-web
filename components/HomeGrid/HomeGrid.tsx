@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { motion, useReducedMotion, type Transition } from "framer-motion";
 import { INTRO_FADE_MS, INTRO_HOLD_MS } from "@/components/HomeIntro";
-import ProductList from "@/components/ProductList";
+import ProductTicker from "@/components/ProductTicker";
 import type { Product } from "@/lib/products";
 
 // Panels slide in only after the intro overlay has fully faded out.
@@ -15,27 +15,35 @@ const slideTransition: Transition = {
 
 interface HomeGridProps {
   products: Product[];
+  onTickerVisible?: () => void;
 }
 
-export default function HomeGrid({ products }: HomeGridProps) {
+export default function HomeGrid({ products, onTickerVisible }: HomeGridProps) {
   const reduce = useReducedMotion();
 
+  // Reduced motion skips the slide-in entirely, so there's no animation
+  // completion to hook into — fire as soon as it would have appeared.
+  useEffect(() => {
+    if (reduce) onTickerVisible?.();
+  }, [reduce, onTickerVisible]);
+
   return (
-    <main className="grid min-h-dvh grid-cols-1 gap-2 overflow-x-clip bg-muted p-2 md:h-dvh md:grid-cols-4 md:grid-rows-1 md:gap-0 md:overflow-hidden md:p-0">
+    <main className="flex min-h-dvh flex-col overflow-x-clip bg-card md:h-dvh md:overflow-hidden">
       <motion.section
-        className="rounded-lg bg-card md:col-span-3 md:m-2"
-        initial={reduce ? false : { x: -32, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
+        className="flex-1 bg-card"
+        initial={reduce ? false : { y: -32, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={slideTransition}
       />
       <motion.aside
-        className="flex flex-col gap-6 rounded-lg p-6 md:overflow-y-auto"
-        initial={reduce ? false : { x: 32, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
+        className="shrink-0 bg-card"
+        initial={reduce ? false : { y: 32, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={slideTransition}
+        onAnimationComplete={reduce ? undefined : onTickerVisible}
       >
         <Suspense fallback={null}>
-          <ProductList products={products} />
+          <ProductTicker products={products} />
         </Suspense>
       </motion.aside>
     </main>

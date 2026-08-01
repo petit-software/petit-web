@@ -1,5 +1,4 @@
-import HomeGrid from "@/components/HomeGrid";
-import HomeIntro from "@/components/HomeIntro";
+import HomeExperience from "@/components/HomeExperience";
 import LandingHeader from "@/components/LandingHeader";
 import Logo from "@/components/Logo";
 import { getProducts } from "@/lib/products";
@@ -10,10 +9,7 @@ export default function TempPage() {
   return (
     <>
       <LandingHeader showLogo={false} />
-      <HomeIntro>
-        <Logo />
-      </HomeIntro>
-      <HomeGrid products={products} />
+      <HomeExperience products={products} logo={<Logo />} />
     </>
   );
 }

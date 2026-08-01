@@ -53,10 +53,11 @@ function ProductMedia({
 export default function ProductCard({ product, open, onOpenChange }: ProductCardProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger className="w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Card className="cursor-pointer bg-card pt-0 pb-6 ring-0">
-          <ProductMedia product={product} className="aspect-square" sizes="25vw" />
-          <CardHeader className="px-6">
+      <DialogTrigger className="w-full rounded-[32px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {/* Concentric radius: outer 32px = inner 12px + 20px padding. */}
+        <Card className="cursor-pointer rounded-[32px] bg-card p-[20px]">
+          <ProductMedia product={product} className="aspect-square rounded-[12px]" sizes="25vw" />
+          <CardHeader className="px-0">
             <CardTitle>{product.name}</CardTitle>
             <CardDescription>{product.description}</CardDescription>
           </CardHeader>
