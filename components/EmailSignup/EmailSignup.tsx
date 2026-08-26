@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
@@ -15,6 +16,7 @@ interface EmailSignupProps {
   placeholder?: string;
   source?: string;
   segmentId?: string;
+  stacked?: boolean;
 }
 
 type Status = "idle" | "loading" | "success";
@@ -24,6 +26,7 @@ export default function EmailSignup({
   placeholder = "you@company.com",
   source,
   segmentId,
+  stacked = false,
 }: EmailSignupProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -74,12 +77,19 @@ export default function EmailSignup({
               onChange={(e) => setEmail(e.target.value)}
               disabled={disabled}
             />
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton type="submit" variant="default" size="sm" disabled={disabled}>
-                {status === "loading" ? "Sending…" : buttonLabel}
-              </InputGroupButton>
-            </InputGroupAddon>
+            {!stacked && (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton type="submit" variant="default" size="sm" disabled={disabled}>
+                  {status === "loading" ? "Sending…" : buttonLabel}
+                </InputGroupButton>
+              </InputGroupAddon>
+            )}
           </InputGroup>
+          {stacked && (
+            <Button type="submit" size="lg" className="w-full" disabled={disabled}>
+              {status === "loading" ? "Sending…" : buttonLabel}
+            </Button>
+          )}
         </Field>
       </FieldGroup>
     </form>

@@ -33,7 +33,10 @@ export async function POST(req: Request) {
   }
 
   const resend = new Resend(apiKey);
-  const segmentId = body.segmentId?.trim();
+  const segmentId =
+    body.source === "clarity-testflight"
+      ? process.env.RESEND_CLARITY_SEGMENT_ID?.trim()
+      : body.segmentId?.trim();
 
   const { error } = await resend.contacts.create({
     email,
