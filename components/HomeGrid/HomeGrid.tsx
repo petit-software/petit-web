@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion, type Transition } from "framer-motion";
 import { INTRO_HOLD_MS } from "@/components/HomeIntro";
 import ProductTicker from "@/components/ProductTicker";
@@ -58,9 +58,7 @@ export default function HomeGrid({ products, onTickerVisible }: HomeGridProps) {
         transition={slideTransition}
         onAnimationComplete={reduce ? undefined : handleAsideVisible}
       >
-        <Suspense fallback={null}>
-          <ProductTicker products={products} revealed={tickerVisible} />
-        </Suspense>
+        <ProductTicker products={products} revealed={tickerVisible} />
       </motion.aside>
     </main>
   );

@@ -15,7 +15,6 @@ export interface Product {
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), "content", "products");
-const PUBLIC_ROOT = path.join(process.cwd(), "public", "products");
 const COVER_BASENAME = "cover";
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"];
 
@@ -30,15 +29,6 @@ function findCoverImage(dir: string): string | undefined {
     return base === COVER_BASENAME && IMAGE_EXTENSIONS.includes(ext);
   });
   return match?.name;
-}
-
-// Copies content/products/<slug>/cover.<ext> into public/, so the file only
-// has to exist in the content folder — nothing to duplicate into public/.
-function syncCoverImage(slug: string, dir: string, filename: string): string {
-  const outDir = path.join(PUBLIC_ROOT, slug);
-  fs.mkdirSync(outDir, { recursive: true });
-  fs.copyFileSync(path.join(dir, filename), path.join(outDir, filename));
-  return `/products/${slug}/${filename}`;
 }
 
 /**
@@ -71,7 +61,7 @@ export function getProducts(): Product[] {
       name: data.name,
       description: data.description,
       url: data.url,
-      image: coverFile ? syncCoverImage(id, dir, coverFile) : undefined,
+      image: coverFile ? `/products/${id}/${coverFile}` : undefined,
       imageAlt: data.imageAlt,
       details: content.trim(),
     };

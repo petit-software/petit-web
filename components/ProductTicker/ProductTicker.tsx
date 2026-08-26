@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { cn } from "@/lib/utils";
@@ -41,23 +40,13 @@ interface ProductTickerProps {
 // of mounting the product list over and over.
 export default function ProductTicker({ products, revealed = false }: ProductTickerProps) {
   const reduce = useReducedMotion();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const openId = searchParams.get("product");
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  const setOpen = useCallback(
+  const handleOpenChange = useCallback(
     (id: string, open: boolean) => {
-      const params = new URLSearchParams(searchParams);
-      if (open) {
-        params.set("product", id);
-      } else {
-        params.delete("product");
-      }
-      const qs = params.toString();
-      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      setOpenId(open ? id : null);
     },
-    [router, pathname, searchParams],
+    [],
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -225,7 +214,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
             <ProductCard
               product={product}
               open={openId === product.id}
-              onOpenChange={(open) => setOpen(product.id, open)}
+              onOpenChange={(open) => handleOpenChange(product.id, open)}
             />
           </div>
         ))}
@@ -304,7 +293,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
                 <ProductCard
                   product={product}
                   open={slot.key === openSlotKey}
-                  onOpenChange={(open) => setOpen(product.id, open)}
+                  onOpenChange={(open) => handleOpenChange(product.id, open)}
                 />
               </div>
             </div>

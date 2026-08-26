@@ -8,6 +8,7 @@ interface SignupBody {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CLARITY_SEGMENT_ID = "3d5610ca-bcd3-4163-9894-3c89f1f0ac99";
 
 export async function POST(req: Request) {
   let body: SignupBody;
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
   const resend = new Resend(apiKey);
   const segmentId =
     body.source === "clarity-testflight"
-      ? process.env.RESEND_CLARITY_SEGMENT_ID?.trim()
+      ? CLARITY_SEGMENT_ID
       : body.segmentId?.trim();
 
   const { error } = await resend.contacts.create({
