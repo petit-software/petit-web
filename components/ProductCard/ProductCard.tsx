@@ -68,21 +68,29 @@ export default function ProductCard({ product, open, onOpenChange }: ProductCard
         </Card>
       </SheetTrigger>
       <SheetContent
-        side="right"
-        className="w-full gap-0 overflow-y-auto rounded-2xl border-0 p-0 shadow-2xl sm:max-w-md data-[side=right]:top-4 data-[side=right]:right-4 data-[side=right]:bottom-4 data-[side=right]:h-auto"
+        side="bottom"
+        className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl border-0 p-0 shadow-2xl sm:max-w-3xl data-[side=bottom]:inset-x-4 data-[side=bottom]:bottom-4 data-[side=bottom]:h-auto"
       >
-        <ProductMedia product={product} className="aspect-video w-full shrink-0" sizes="(min-width: 640px) 28rem, 100vw" />
-        <SheetHeader>
-          <SheetTitle>{product.name}</SheetTitle>
-          <SheetDescription>{product.details}</SheetDescription>
-        </SheetHeader>
-        <SheetFooter>
-          <Button asChild>
-            <a href={product.url} target="_blank" rel="noreferrer">
-              Visit product
-            </a>
-          </Button>
-        </SheetFooter>
+        <div className="flex flex-col sm:flex-row">
+          <ProductMedia
+            product={product}
+            className="aspect-video w-full shrink-0 sm:aspect-square sm:w-64"
+            sizes="(min-width: 640px) 16rem, 100vw"
+          />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <SheetHeader>
+              <SheetTitle>{product.name}</SheetTitle>
+              <SheetDescription>{product.details}</SheetDescription>
+            </SheetHeader>
+            <SheetFooter>
+              <Button asChild>
+                <a href={product.url} target="_blank" rel="noreferrer">
+                  Visit product
+                </a>
+              </Button>
+            </SheetFooter>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
