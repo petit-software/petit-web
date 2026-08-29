@@ -11,22 +11,30 @@ export interface Product {
   url: string;
   /** Public URL for the folder's cover.<ext> file, if one exists. Falls back to a color block when omitted. */
   image?: string;
+  /** Public URL for the folder's detail.<ext> file — the wider image shown in the drawer.
+   *  Falls back to the cover when the folder has no detail image of its own. */
+  detailImage?: string;
   imageAlt?: string;
+  /** "owner/repo" for an open-source product. Drives the GitHub link and the
+   *  latest-release download button. */
+  github?: string;
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), "content", "products");
 const COVER_BASENAME = "cover";
+const DETAIL_BASENAME = "detail";
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"];
 
-// A product's image is just cover.<ext> sitting next to its index.md — no
-// frontmatter field to fill in, just name the file and it's picked up.
-function findCoverImage(dir: string): string | undefined {
+// A product's images are just cover.<ext> / detail.<ext> sitting next to its
+// index.md — no frontmatter field to fill in, just name the file and it's
+// picked up. cover is the ticker tile, detail is the drawer.
+function findImage(dir: string, basename: string): string | undefined {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const match = entries.find((entry) => {
     if (!entry.isFile()) return false;
     const ext = path.extname(entry.name).toLowerCase();
     const base = path.basename(entry.name, ext).toLowerCase();
-    return base === COVER_BASENAME && IMAGE_EXTENSIONS.includes(ext);
+    return base === basename && IMAGE_EXTENSIONS.includes(ext);
   });
   return match?.name;
 }
@@ -54,15 +62,19 @@ export function getProducts(): Product[] {
       }
     }
 
-    const coverFile = findCoverImage(dir);
+    const coverFile = findImage(dir, COVER_BASENAME);
+    const detailFile = findImage(dir, DETAIL_BASENAME);
+    const cover = coverFile ? `/products/${id}/${coverFile}` : undefined;
 
     return {
       id,
       name: data.name,
       description: data.description,
       url: data.url,
-      image: coverFile ? `/products/${id}/${coverFile}` : undefined,
+      image: cover,
+      detailImage: detailFile ? `/products/${id}/${detailFile}` : cover,
       imageAlt: data.imageAlt,
+      github: data.github,
       details: content.trim(),
     };
   });

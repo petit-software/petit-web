@@ -75,10 +75,18 @@ Only slugs in the registry are built (`dynamicParams = false`).
 Products (the tiles in the home page's `ProductTicker`) are auto-discovered — there's no registry to edit.
 
 1. Create `content/products/<slug>/index.md` with frontmatter `name`, `description`, `url` (all required), and optional `imageAlt`. Body markdown becomes the long-form text shown in the product's modal.
-2. Name the cover image `cover.<ext>` (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg`, or `.avif`) and drop it directly in that same folder — no frontmatter field needed, `lib/products.ts` auto-detects it by filename, copies it to `public/products/<slug>/`, and rewrites the path. Don't add images to `public/` by hand.
-3. That's it — `getProducts()` reads every folder under `content/products/`, sorted alphabetically by slug, and the ticker picks it up on the next dev reload or build. No slug list, no import to add.
+2. Name the tile image `cover.<ext>` (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg`, or `.avif`) and drop it directly in that same folder — no frontmatter field needed, `lib/products.ts` auto-detects it by filename, copies it to `public/products/<slug>/`, and rewrites the path. Don't add images to `public/` by hand.
+3. Optionally add `detail.<ext>` alongside it — the wider image shown in the drawer. Same auto-detection; falls back to `cover.<ext>` when absent. Use it when the tile wants a square icon but the drawer wants a full-bleed shot.
+4. Optionally add `github: owner/repo` to the frontmatter for an open-source product. It swaps the drawer's single "Visit product" button for a **Download** + **GitHub** pair; Download points at `/api/download/<slug>`, which resolves the newest release asset at request time (see below).
+5. That's it — `getProducts()` reads every folder under `content/products/`, sorted alphabetically by slug, and the ticker picks it up on the next dev reload or build. No slug list, no import to add.
 
-`public/products/` is gitignored — it's a generated mirror of `content/products/<slug>/*`, not a source of truth.
+`public/products/` is gitignored — it's a generated mirror of `content/products/<slug>/*`, not a source of truth. `scripts/sync-product-images.mjs` (run from `predev` / `prebuild`) does the copying.
+
+### Latest-release downloads
+
+`app/api/download/[slug]/route.ts` 302-redirects to the newest release asset for a product's repo. GitHub's static `/releases/latest/download/<file>` shortcut only works when the asset filename is stable across releases; Clio's assets embed the version (`Clio-0.61.dmg`), so the asset is resolved through the GitHub API at request time instead, cached for 5 minutes via `next: { revalidate }`.
+
+The repo comes from the product's own `github` frontmatter, looked up by slug — never from the URL — so the route can't be pointed at an arbitrary host. It prefers `.dmg`, then `.pkg`, then `.zip`, then the first asset, and falls back to the repo's releases page if the API call fails.
 
 ## Markdown frontmatter contract
 

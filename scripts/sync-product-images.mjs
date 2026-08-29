@@ -6,14 +6,21 @@ const contentRoot = path.join(projectRoot, "content", "products");
 const publicRoot = path.join(projectRoot, "public", "products");
 const imageExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"]);
 
-function findCoverImage(directory) {
-  return fs.readdirSync(directory, { withFileTypes: true }).find((entry) => {
-    if (!entry.isFile()) return false;
+// cover.<ext> is the ticker tile, detail.<ext> is the drawer. Both are
+// optional; whichever exist get mirrored into public/.
+const imageBasenames = ["cover", "detail"];
 
-    const extension = path.extname(entry.name).toLowerCase();
-    const basename = path.basename(entry.name, extension).toLowerCase();
-    return basename === "cover" && imageExtensions.has(extension);
-  })?.name;
+function findProductImages(directory) {
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => {
+      if (!entry.isFile()) return false;
+
+      const extension = path.extname(entry.name).toLowerCase();
+      const basename = path.basename(entry.name, extension).toLowerCase();
+      return imageBasenames.includes(basename) && imageExtensions.has(extension);
+    })
+    .map((entry) => entry.name);
 }
 
 function filesAreEqual(source, destination) {
@@ -32,17 +39,17 @@ for (const entry of fs.readdirSync(contentRoot, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
 
   const sourceDirectory = path.join(contentRoot, entry.name);
-  const cover = findCoverImage(sourceDirectory);
-  if (!cover) continue;
-
-  const source = path.join(sourceDirectory, cover);
   const destinationDirectory = path.join(publicRoot, entry.name);
-  const destination = path.join(destinationDirectory, cover);
-  if (filesAreEqual(source, destination)) continue;
 
-  fs.mkdirSync(destinationDirectory, { recursive: true });
-  fs.copyFileSync(source, destination);
-  copied += 1;
+  for (const image of findProductImages(sourceDirectory)) {
+    const source = path.join(sourceDirectory, image);
+    const destination = path.join(destinationDirectory, image);
+    if (filesAreEqual(source, destination)) continue;
+
+    fs.mkdirSync(destinationDirectory, { recursive: true });
+    fs.copyFileSync(source, destination);
+    copied += 1;
+  }
 }
 
 console.log(

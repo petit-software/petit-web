@@ -28,18 +28,23 @@ interface ProductCardProps {
 
 function ProductMedia({
   product,
+  src,
   className,
   sizes,
 }: {
   product: Product;
+  /** cover for the tile, detail for the drawer. */
+  src?: string;
   className?: string;
   sizes: string;
 }) {
   return (
-    <div className={cn("relative w-full overflow-hidden bg-chart-1", className)}>
-      {product.image && (
+    // The placeholder color block is only for products with no image at all —
+    // painting it under a transparent PNG would show through as a grey ground.
+    <div className={cn("relative w-full overflow-hidden", !src && "bg-chart-1", className)}>
+      {src && (
         <Image
-          src={product.image}
+          src={src}
           alt={product.imageAlt ?? product.name}
           fill
           sizes={sizes}
@@ -59,8 +64,13 @@ export default function ProductCard({ product, open, onOpenChange }: ProductCard
   return (
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
       <SheetTrigger className="w-full rounded-[24px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Card className="cursor-pointer rounded-[24px] bg-muted p-[20px] ring-0">
-          <ProductMedia product={product} className="aspect-square rounded-[14px]" sizes="25vw" />
+        <Card className="cursor-pointer rounded-[24px] bg-transparent p-[20px] ring-1 ring-border">
+          <ProductMedia
+            product={product}
+            src={product.image}
+            className="aspect-square rounded-[14px]"
+            sizes="25vw"
+          />
           <CardHeader className="px-0">
             <CardTitle>{product.name}</CardTitle>
             <CardDescription>{product.description}</CardDescription>
@@ -71,23 +81,45 @@ export default function ProductCard({ product, open, onOpenChange }: ProductCard
         side="bottom"
         className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl border-0 p-0 shadow-2xl sm:max-w-3xl data-[side=bottom]:inset-x-4 data-[side=bottom]:bottom-4 data-[side=bottom]:h-auto"
       >
-        <div className="flex flex-col sm:flex-row">
+        {/* Fixed height from sm up so the drawer reads as a panel rather than
+            shrink-wrapping the copy; the media column stretches to fill it. */}
+        <div className="flex flex-col sm:h-[26rem] sm:flex-row">
           <ProductMedia
             product={product}
-            className="aspect-video w-full shrink-0 sm:aspect-square sm:w-64"
-            sizes="(min-width: 640px) 16rem, 100vw"
+            src={product.detailImage}
+            className="aspect-video w-full shrink-0 sm:aspect-auto sm:h-full sm:w-80"
+            sizes="(min-width: 640px) 20rem, 100vw"
           />
           <div className="flex min-w-0 flex-1 flex-col">
-            <SheetHeader>
-              <SheetTitle>{product.name}</SheetTitle>
+            <SheetHeader className="gap-2 p-6">
+              <SheetTitle className="text-xl">{product.name}</SheetTitle>
               <SheetDescription>{product.details}</SheetDescription>
             </SheetHeader>
-            <SheetFooter>
-              <Button asChild>
-                <a href={product.url} target="_blank" rel="noreferrer">
-                  Visit product
-                </a>
-              </Button>
+            <SheetFooter className="flex-row flex-wrap items-center justify-end p-6 pt-0">
+              {product.github ? (
+                <>
+                  {/* Resolves the newest release asset server-side — see
+                      app/api/download/[slug]/route.ts. */}
+                  <Button asChild>
+                    <a href={`/api/download/${product.id}`}>Download</a>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <a
+                      href={`https://github.com/${product.github}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      GitHub
+                    </a>
+                  </Button>
+                </>
+              ) : (
+                <Button asChild>
+                  <a href={product.url} target="_blank" rel="noreferrer">
+                    Visit product
+                  </a>
+                </Button>
+              )}
             </SheetFooter>
           </div>
         </div>
