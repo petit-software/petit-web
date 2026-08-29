@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { cn } from "@/lib/utils";
@@ -20,10 +20,34 @@ const ENTRANCE_DURATION = 450; // ms
 const ENTRANCE_STAGGER = 70; // ms between tiles
 const ENTRANCE_EASE = "cubic-bezier(0.215, 0.61, 0.355, 1)"; // ease-out-cubic
 
+// A backgrounded tab stops firing rAF entirely; without a ceiling the first
+// frame back would carry minutes of dt and fling the belt across the catalog.
+const MAX_FRAME_SECONDS = 1 / 20;
+
+// Pointer drag.
+const DRAG_THRESHOLD = 4; // px of travel before a press becomes a drag
+const VELOCITY_SMOOTHING = 0.7; // weight kept from the running average
+const FLICK_TIMEOUT_MS = 80; // pointer held still this long releases dead
+const MOMENTUM_FRICTION = 0.94; // fraction of velocity retained per 16ms
+const MOMENTUM_MIN = 0.02; // px/ms — below this, momentum stops
+const MOMENTUM_MAX = 4; // px/ms — ceiling for a violent flick
+
+// Position is only ever read as (order * STEP - offset), so shifting both by
+// the same amount moves nothing on screen — and when that amount is a whole
+// number of catalog lengths, every tile also keeps the product it was already
+// showing. Rebasing on that basis keeps the two numbers from growing without
+// bound in a tab left open for days, at no visual cost.
+const REBASE_THRESHOLD = 1e6; // px
+
+const mod = (n: number, m: number) => ((n % m) + m) % m;
+const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
+
+// A slot is a recycled DOM element, identified by a stable key and positioned
+// by its order along the belt. Which product it shows is *derived* from that
+// order rather than tracked alongside it — see productIndexFor.
 interface Slot {
   key: number;
   order: number;
-  productIndex: number;
 }
 
 interface ProductTickerProps {
@@ -34,20 +58,106 @@ interface ProductTickerProps {
   revealed?: boolean;
 }
 
+interface TickerTileProps {
+  product: Product;
+  slotKey: number;
+  order: number;
+  /** Read once per commit for the mount/recycle transform; the rAF loop owns
+   *  the value from then on. A ref rather than a number so a moving belt does
+   *  not invalidate the memo on every frame. */
+  offsetRef: { current: number };
+  open: boolean;
+  isHovered: boolean;
+  anyHovered: boolean;
+  anyOpen: boolean;
+  playEntrance: boolean;
+  /** ms of stagger, or null for a tile that was never part of the entrance. */
+  entranceDelay: number | null;
+  onOpenChange: (id: string, open: boolean) => void;
+  onHoverChange: (key: number, hovered: boolean) => void;
+  registerElement: (key: number, el: HTMLDivElement | null) => void;
+}
+
+// Memoized so a recycle re-renders only the tiles whose product actually
+// changed. Under a fast drag several slots can wrap in a single frame, and
+// without this every wrap would re-render the whole belt.
+const TickerTile = memo(function TickerTile({
+  product,
+  slotKey,
+  order,
+  offsetRef,
+  open,
+  isHovered,
+  anyHovered,
+  anyOpen,
+  playEntrance,
+  entranceDelay,
+  onOpenChange,
+  onHoverChange,
+  registerElement,
+}: TickerTileProps) {
+  const setElement = useCallback(
+    (el: HTMLDivElement | null) => registerElement(slotKey, el),
+    [registerElement, slotKey],
+  );
+  const handleOpenChange = useCallback(
+    (next: boolean) => onOpenChange(product.id, next),
+    [onOpenChange, product.id],
+  );
+  const handleMouseEnter = useCallback(() => onHoverChange(slotKey, true), [onHoverChange, slotKey]);
+  const handleMouseLeave = useCallback(() => onHoverChange(slotKey, false), [onHoverChange, slotKey]);
+
+  const isEntranceTile = entranceDelay !== null;
+
+  return (
+    <div
+      ref={setElement}
+      className="absolute top-0 left-0 w-[480px]"
+      style={{
+        transform: `translate3d(${order * STEP - offsetRef.current}px, 0, 0)`,
+        willChange: "transform",
+        zIndex: isHovered ? 10 : 0,
+      }}
+    >
+      <div
+        className={cn("origin-bottom", isEntranceTile && "will-change-transform")}
+        style={
+          isEntranceTile
+            ? {
+                opacity: playEntrance ? 1 : 0,
+                transform: `scale(${playEntrance ? 1 : 0.94})`,
+                transition: `opacity ${ENTRANCE_DURATION}ms ${ENTRANCE_EASE}, transform ${ENTRANCE_DURATION}ms ${ENTRANCE_EASE}`,
+                transitionDelay: `${entranceDelay}ms`,
+              }
+            : undefined
+        }
+      >
+        <div
+          className={cn(
+            "origin-bottom transition-transform duration-300 ease-out",
+            !anyOpen && isHovered ? "scale-105" : !anyOpen && anyHovered ? "scale-95" : "scale-100",
+          )}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <ProductCard product={product} open={open} onOpenChange={handleOpenChange} />
+        </div>
+      </div>
+    </div>
+  );
+});
+
 // Infinite horizontal marquee of product tiles. Renders a fixed-size window
 // of slots (visible + BUFFER ahead + BUFFER behind) and recycles a slot to
-// the front of the belt once it scrolls fully past the back buffer, instead
-// of mounting the product list over and over.
+// the other end of the belt once it scrolls past the buffer, instead of
+// mounting the product list over and over.
 export default function ProductTicker({ products, revealed = false }: ProductTickerProps) {
   const reduce = useReducedMotion();
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const handleOpenChange = useCallback(
-    (id: string, open: boolean) => {
-      setOpenId(open ? id : null);
-    },
-    [],
-  );
+  const handleOpenChange = useCallback((id: string, open: boolean) => {
+    setOpenId(open ? id : null);
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -64,39 +174,38 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   }, []);
 
   const slotCount = visibleCount > 0 ? visibleCount + BUFFER * 2 : 0;
-  const visibleCountRef = useRef(visibleCount);
-  useEffect(() => {
-    visibleCountRef.current = visibleCount;
-  }, [visibleCount]);
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const slotsRef = useRef<Slot[]>([]);
   const nextKeyRef = useRef(0);
-  const nextProductRef = useRef(0);
-  const prevProductRef = useRef(-1);
 
-  // The first ENTRANCE_COUNT on-screen tiles (order 0..ENTRANCE_COUNT-1) get
-  // a one-time staggered reveal. Captured once, from the first slot batch,
-  // so later recycles/resizes never re-trigger it.
-  const entranceKeysRef = useRef<Set<number> | null>(null);
+  // The first ENTRANCE_COUNT on-screen tiles get a one-time staggered reveal.
+  // Keyed by slot and captured once, from the first batch, so later recycles
+  // and resizes neither re-trigger it nor shift its timing.
+  const entranceDelaysRef = useRef<Map<number, number> | null>(null);
   const [playEntrance, setPlayEntrance] = useState(false);
 
-  // Grow the slot window to fill wider viewports. Never shrinks — a few
-  // extra off-screen slots after a resize are harmless.
+  // Grow the slot window to fill wider viewports. Never shrinks — a few extra
+  // off-screen slots after a resize are harmless. New slots append past the
+  // current highest order (not at an array index, which stopped tracking
+  // order the moment the belt began recycling) to keep the run contiguous.
   useEffect(() => {
     if (products.length === 0 || slotCount === 0 || slotCount <= slotsRef.current.length) return;
     const next = [...slotsRef.current];
+    let maxOrder = next.length === 0 ? -BUFFER - 1 : -Infinity;
+    for (const slot of next) maxOrder = Math.max(maxOrder, slot.order);
     while (next.length < slotCount) {
-      next.push({
-        key: nextKeyRef.current++,
-        order: next.length - BUFFER,
-        productIndex: nextProductRef.current++ % products.length,
-      });
+      maxOrder += 1;
+      next.push({ key: nextKeyRef.current++, order: maxOrder });
     }
-    if (entranceKeysRef.current === null) {
-      entranceKeysRef.current = new Set(
-        next.filter((slot) => slot.order >= 0 && slot.order < ENTRANCE_COUNT).map((slot) => slot.key),
-      );
+    if (entranceDelaysRef.current === null) {
+      const delays = new Map<number, number>();
+      for (const slot of next) {
+        if (slot.order >= 0 && slot.order < ENTRANCE_COUNT) {
+          delays.set(slot.key, slot.order * ENTRANCE_STAGGER);
+        }
+      }
+      entranceDelaysRef.current = delays;
     }
     slotsRef.current = next;
     setSlots(next);
@@ -112,9 +221,18 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   const elementsRef = useRef(new Map<number, HTMLDivElement>());
   const [hoveredKey, setHoveredKey] = useState<number | null>(null);
 
-  // React bubbles portal content (the Sheet) through the *React* tree, not
+  const registerElement = useCallback((key: number, el: HTMLDivElement | null) => {
+    if (el) elementsRef.current.set(key, el);
+    else elementsRef.current.delete(key);
+  }, []);
+
+  const handleHoverChange = useCallback((key: number, hovered: boolean) => {
+    setHoveredKey((current) => (hovered ? key : current === key ? null : current));
+  }, []);
+
+  // React bubbles portal content (the drawer) through the *React* tree, not
   // the DOM tree — so onMouseLeave never fires on the tile/container behind
-  // an open sheet while the cursor is anywhere inside it, leaving pausedRef
+  // an open drawer while the cursor is anywhere inside it, leaving pausedRef
   // and hoveredKey stuck. anyOpen forces both back to their neutral state
   // regardless, rather than depending on the stuck hover signal.
   const anyOpen = openId != null;
@@ -124,12 +242,15 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   }, [anyOpen]);
   useEffect(() => {
     setHoveredKey(null);
-    // Also reset the stuck hover-pause directly: once a sheet has been
+    // Also reset the stuck hover-pause directly: once a drawer has been
     // opened, the container's real onMouseLeave may never fire again (same
     // portal-bubbling issue), so closing it would otherwise leave drift
     // paused forever even though the cursor visually left the ticker.
     pausedRef.current = false;
   }, [anyOpen]);
+
+  const draggingRef = useRef(false);
+  const momentumRef = useRef(0); // px/ms, applied after release
 
   // User scroll (wheel/trackpad) drives offsetRef directly, in either
   // direction. Must be a native, non-passive listener so preventDefault
@@ -140,6 +261,8 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     const onWheel = (e: WheelEvent) => {
       const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (delta === 0) return;
+      // A deliberate scroll takes over from any leftover flick.
+      momentumRef.current = 0;
       offsetRef.current += delta;
       e.preventDefault();
     };
@@ -147,57 +270,202 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     return () => el.removeEventListener("wheel", onWheel);
   }, [reduce]);
 
+  // Pointer drag: mouse, touch and pen through one set of handlers.
+  //
+  // These are native listeners rather than React props on purpose. React
+  // bubbles events from portalled content through the React tree, so an
+  // onPointerDown here would also fire for presses inside an open drawer —
+  // the same portal-bubbling trap the hover state above works around. Native
+  // DOM listeners only see what is actually inside the container.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || reduce) return;
+
+    let pointerId: number | null = null;
+    let startX = 0;
+    let lastX = 0;
+    let lastMoveAt = 0;
+    let velocity = 0; // px/ms, smoothed
+    let suppressClick = false;
+
+    const endDrag = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      el.style.removeProperty("user-select");
+      el.style.removeProperty("-webkit-user-select");
+      // A drag that ends on a tile must not also open it.
+      suppressClick = true;
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      lastX = e.clientX;
+      lastMoveAt = e.timeStamp;
+      velocity = 0;
+      // Grabbing the belt stops it dead, including any previous flick.
+      momentumRef.current = 0;
+      // Clear a suppression left over from a drag that ended on empty space
+      // and never produced the click it was waiting to swallow.
+      suppressClick = false;
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (pointerId !== e.pointerId) return;
+
+      if (!draggingRef.current) {
+        if (Math.abs(e.clientX - startX) < DRAG_THRESHOLD) return;
+        // Past the threshold: this is a drag, not a click.
+        draggingRef.current = true;
+        el.style.setProperty("user-select", "none");
+        el.style.setProperty("-webkit-user-select", "none");
+        // Keeps the gesture alive if the pointer leaves the belt mid-drag.
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {
+          // Pointer already released; the gesture ends on its own.
+        }
+      }
+
+      const dx = e.clientX - lastX;
+      const dt = e.timeStamp - lastMoveAt;
+      // Dragging left (negative dx) advances the belt, same sign as drift.
+      offsetRef.current -= dx;
+      if (dt > 0) {
+        const instant = -dx / dt;
+        velocity = velocity * VELOCITY_SMOOTHING + instant * (1 - VELOCITY_SMOOTHING);
+      }
+      lastX = e.clientX;
+      lastMoveAt = e.timeStamp;
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (pointerId !== e.pointerId) return;
+      pointerId = null;
+      if (!draggingRef.current) return;
+      // Released from a standstill: let it settle instead of flicking on a
+      // stale velocity sample from earlier in the gesture.
+      const idle = e.timeStamp - lastMoveAt;
+      momentumRef.current = idle > FLICK_TIMEOUT_MS ? 0 : clamp(velocity, -MOMENTUM_MAX, MOMENTUM_MAX);
+      endDrag();
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      if (pointerId !== e.pointerId) return;
+      pointerId = null;
+      momentumRef.current = 0;
+      endDrag();
+    };
+
+    // Capture can be revoked out from under us (another element claims the
+    // pointer, the browser takes over the gesture). Without this the drag
+    // would never end, and a drag that never ends freezes the belt for good
+    // because the loop hands the offset to the pointer for its duration.
+    const onLostCapture = (e: PointerEvent) => {
+      if (pointerId !== e.pointerId) return;
+      pointerId = null;
+      endDrag();
+    };
+
+    // Capture phase, so a click that closed a drag is swallowed before it
+    // reaches the tile's trigger. A press that never became a drag is left
+    // completely alone.
+    const onClickCapture = (e: MouseEvent) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    // Product images are natively draggable; without this the browser starts
+    // its own drag-and-drop and cancels the pointer stream mid-gesture.
+    const onDragStart = (e: Event) => e.preventDefault();
+
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("lostpointercapture", onLostCapture);
+    el.addEventListener("click", onClickCapture, true);
+    el.addEventListener("dragstart", onDragStart);
+    // On window, not the belt: a gesture that leaves the element still has to
+    // be tracked and, above all, still has to end.
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+
+    return () => {
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("lostpointercapture", onLostCapture);
+      el.removeEventListener("click", onClickCapture, true);
+      el.removeEventListener("dragstart", onDragStart);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+      // Unmounting mid-drag must not leave the belt's selection disabled.
+      el.style.removeProperty("user-select");
+      el.style.removeProperty("-webkit-user-select");
+      draggingRef.current = false;
+    };
+  }, [reduce]);
+
   useEffect(() => {
     if (reduce || products.length === 0) return;
     let raf = 0;
     let last: number | null = null;
 
-    const mod = (n: number) => ((n % products.length) + products.length) % products.length;
-
     const tick = (now: number) => {
-      if (last === null) last = now;
-      const dt = (now - last) / 1000;
-      last = now;
-      if (anyOpenRef.current || !pausedRef.current) offsetRef.current += SPEED * dt;
+      raf = requestAnimationFrame(tick);
 
-      const current = slotsRef.current;
-      const aheadEdge = (visibleCountRef.current + BUFFER) * STEP;
-      let maxOrder = -Infinity;
-      let minOrder = Infinity;
-      for (const slot of current) {
-        maxOrder = Math.max(maxOrder, slot.order);
-        minOrder = Math.min(minOrder, slot.order);
+      if (last === null) last = now;
+      const dt = Math.min((now - last) / 1000, MAX_FRAME_SECONDS);
+      last = now;
+
+      if (draggingRef.current) {
+        // The pointer owns the offset for the duration of the gesture.
+      } else {
+        if (anyOpenRef.current || !pausedRef.current) offsetRef.current += SPEED * dt;
+        if (momentumRef.current !== 0) {
+          const ms = dt * 1000;
+          offsetRef.current += momentumRef.current * ms;
+          momentumRef.current *= Math.pow(MOMENTUM_FRICTION, ms / 16);
+          if (Math.abs(momentumRef.current) < MOMENTUM_MIN) momentumRef.current = 0;
+        }
       }
 
-      let recycled = false;
+      const current = slotsRef.current;
+      const count = current.length;
+      if (count === 0) return;
+
+      let changed = false;
+
+      if (Math.abs(offsetRef.current) > REBASE_THRESHOLD) {
+        // Whole catalog lengths only, so every tile keeps its product.
+        const shift = Math.trunc(offsetRef.current / (STEP * products.length)) * products.length;
+        offsetRef.current -= shift * STEP;
+        for (const slot of current) slot.order -= shift;
+        changed = true;
+      }
+
+      // The belt is exactly the contiguous run of orders [base, base + count).
+      // Re-deriving that every frame — rather than stepping one recycle at a
+      // time — means any jump, however large, lands correctly in one frame,
+      // and no per-recycle bookkeeping can drift out of sync over time.
+      const base = Math.floor(offsetRef.current / STEP) - BUFFER;
       for (const slot of current) {
-        const x = slot.order * STEP - offsetRef.current;
-        if (x + STEP < -BUFFER * STEP) {
-          // Scrolled fully behind the back buffer — recycle to the front.
-          maxOrder += 1;
-          slot.order = maxOrder;
-          slot.productIndex = mod(nextProductRef.current++);
-          recycled = true;
-        } else if (x > aheadEdge) {
-          // Scrolled (backward) fully past the front buffer — recycle to the back.
-          minOrder -= 1;
-          slot.order = minOrder;
-          slot.productIndex = mod(prevProductRef.current--);
-          recycled = true;
+        const wrapped = base + mod(slot.order - base, count);
+        if (wrapped !== slot.order) {
+          slot.order = wrapped;
+          changed = true;
         }
         const el = elementsRef.current.get(slot.key);
         if (el) {
-          const nx = slot.order * STEP - offsetRef.current;
-          el.style.transform = `translate3d(${nx}px, 0, 0)`;
+          el.style.transform = `translate3d(${slot.order * STEP - offsetRef.current}px, 0, 0)`;
         }
       }
 
-      // Position updates above are applied directly to the DOM every frame
-      // for smoothness; only bump React state when a tile's content actually
-      // changed (a recycle), which happens roughly once every few seconds.
-      if (recycled) setSlots([...current]);
-
-      raf = requestAnimationFrame(tick);
+      // Positions are written straight to the DOM every frame for smoothness;
+      // React state only moves when a tile's content actually changes, which
+      // at drift speed is roughly once per tile every eighteen seconds.
+      if (changed) setSlots([...current]);
     };
 
     raf = requestAnimationFrame(tick);
@@ -222,15 +490,25 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     );
   }
 
+  // Which product a slot shows follows from where it sits on the belt, so a
+  // slot that wraps picks up the next product for free and the mapping cannot
+  // drift no matter how many times the belt recycles.
+  const productIndexFor = (order: number) => mod(order + BUFFER, products.length);
+
   // Only one slot may report itself "open" for a given product, even though
   // the same product can occupy several slots at once around the loop.
-  const openProductIndex = products.findIndex((p) => p.id === openId);
-  const openSlotKey = slots.find((s) => s.productIndex === openProductIndex)?.key;
+  const openSlotKey =
+    openId == null
+      ? undefined
+      : slots.find((slot) => products[productIndexFor(slot.order)]?.id === openId)?.key;
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full pb-6"
+      // touch-pan-y hands vertical panning to the browser and keeps horizontal
+      // gestures for the belt, so a touch drag scrolls the ticker rather than
+      // the page.
+      className="relative w-full touch-pan-y pb-6"
       onMouseEnter={() => {
         pausedRef.current = true;
       }}
@@ -247,59 +525,24 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
           </div>
         ))}
       </div>
-      {slots.map((slot) => {
-        const product = products[slot.productIndex];
-        const isHovered = slot.key === hoveredKey;
-        const isEntranceTile = entranceKeysRef.current?.has(slot.key) ?? false;
-        return (
-          <div
-            key={slot.key}
-            ref={(el) => {
-              if (el) elementsRef.current.set(slot.key, el);
-              else elementsRef.current.delete(slot.key);
-            }}
-            className="absolute top-0 left-0 w-[480px]"
-            style={{
-              transform: `translate3d(${slot.order * STEP - offsetRef.current}px, 0, 0)`,
-              willChange: "transform",
-              zIndex: isHovered ? 10 : 0,
-            }}
-          >
-            <div
-              className={cn("origin-bottom", isEntranceTile && "will-change-transform")}
-              style={
-                isEntranceTile
-                  ? {
-                      opacity: playEntrance ? 1 : 0,
-                      transform: `scale(${playEntrance ? 1 : 0.94})`,
-                      transition: `opacity ${ENTRANCE_DURATION}ms ${ENTRANCE_EASE}, transform ${ENTRANCE_DURATION}ms ${ENTRANCE_EASE}`,
-                      transitionDelay: `${slot.order * ENTRANCE_STAGGER}ms`,
-                    }
-                  : undefined
-              }
-            >
-              <div
-                className={cn(
-                  "origin-bottom transition-transform duration-300 ease-out",
-                  !anyOpen && isHovered
-                    ? "scale-105"
-                    : !anyOpen && hoveredKey !== null
-                      ? "scale-95"
-                      : "scale-100",
-                )}
-                onMouseEnter={() => setHoveredKey(slot.key)}
-                onMouseLeave={() => setHoveredKey((k) => (k === slot.key ? null : k))}
-              >
-                <ProductCard
-                  product={product}
-                  open={slot.key === openSlotKey}
-                  onOpenChange={(open) => handleOpenChange(product.id, open)}
-                />
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {slots.map((slot) => (
+        <TickerTile
+          key={slot.key}
+          slotKey={slot.key}
+          order={slot.order}
+          offsetRef={offsetRef}
+          product={products[productIndexFor(slot.order)]}
+          open={slot.key === openSlotKey}
+          isHovered={slot.key === hoveredKey}
+          anyHovered={hoveredKey !== null}
+          anyOpen={anyOpen}
+          playEntrance={playEntrance}
+          entranceDelay={entranceDelaysRef.current?.get(slot.key) ?? null}
+          onOpenChange={handleOpenChange}
+          onHoverChange={handleHoverChange}
+          registerElement={registerElement}
+        />
+      ))}
     </div>
   );
 }
