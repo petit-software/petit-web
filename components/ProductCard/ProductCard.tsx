@@ -79,7 +79,7 @@ export default function ProductCard({ product, open, onOpenChange }: ProductCard
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl border-0 p-0 shadow-2xl sm:max-w-3xl data-[side=bottom]:inset-x-4 data-[side=bottom]:bottom-4 data-[side=bottom]:h-auto"
+        className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl border-0 p-0 shadow-2xl sm:max-w-3xl data-[side=bottom]:inset-x-4 data-[side=bottom]:bottom-4 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0"
       >
         {/* Fixed height from sm up so the drawer reads as a panel rather than
             shrink-wrapping the copy; the media column stretches to fill it. */}
