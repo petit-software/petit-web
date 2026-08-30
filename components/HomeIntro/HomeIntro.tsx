@@ -1,7 +1,9 @@
 "use client";
 
-import { cloneElement, isValidElement, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import LogoSvg from "@/components/Logo/LogoSvg";
+import type { LogoSvgData } from "@/components/Logo/parseLogo";
 import TitleReveal from "@/components/TitleReveal";
 import { cn } from "@/lib/utils";
 
@@ -12,23 +14,21 @@ import { cn } from "@/lib/utils";
 // moment the logo settles at the top instead of waiting on a separate hold.
 const DRAW_COMPLETE_MS = 2150;
 const LIFT_DURATION_MS = 500;
+const UNDRAW_FALLBACK_MS = 2000;
 
 export const INTRO_HOLD_MS = DRAW_COMPLETE_MS + LIFT_DURATION_MS;
 export const INTRO_FADE_MS = 600;
 
 interface HomeIntroProps {
-  children: React.ReactNode;
+  logoData: LogoSvgData;
   /** Word-by-word title shown in place of the logo once `revealTitle` is true. */
   title: string;
+  /** Second title line, cycled on a loop under the static one. */
+  titleRotations: string[];
   revealTitle: boolean;
 }
 
-interface LogoLikeProps {
-  drawn?: boolean;
-  onUndrawComplete?: () => void;
-}
-
-export default function HomeIntro({ children, title, revealTitle }: HomeIntroProps) {
+export default function HomeIntro({ logoData, title, titleRotations, revealTitle }: HomeIntroProps) {
   const reduce = useReducedMotion();
   const [curtainVisible, setCurtainVisible] = useState(true);
   const [lifted, setLifted] = useState(false);
@@ -36,18 +36,26 @@ export default function HomeIntro({ children, title, revealTitle }: HomeIntroPro
   // fires — reacting to the real animation instead of a setTimeout guessing
   // its duration avoids racing Framer Motion's own clock (see LogoSvg).
   const [logoUndrawn, setLogoUndrawn] = useState(false);
-  const showTitle = revealTitle && !reduce;
+  const showTitle = revealTitle;
   const handleUndrawComplete = useCallback(() => setLogoUndrawn(true), []);
 
-  // Undrawing the logo (reverse of its draw-on entrance) instead of a flat
-  // opacity fade — see LogoSvg's `drawn` prop.
-  const logo = isValidElement<LogoLikeProps>(children)
-    ? cloneElement(children, { drawn: !showTitle, onUndrawComplete: handleUndrawComplete })
-    : children;
-
   useEffect(() => {
-    if (!showTitle) setLogoUndrawn(false);
-  }, [showTitle]);
+    if (!showTitle) {
+      setLogoUndrawn(false);
+      return;
+    }
+
+    if (reduce) {
+      setLogoUndrawn(true);
+      return;
+    }
+
+    // LogoSvg normally reports its exact completion. This timeout only keeps
+    // the title handoff from getting permanently stuck if Motion misses that
+    // callback during a concurrent render.
+    const fallback = window.setTimeout(() => setLogoUndrawn(true), UNDRAW_FALLBACK_MS);
+    return () => window.clearTimeout(fallback);
+  }, [reduce, showTitle]);
 
   useEffect(() => {
     if (reduce) {
@@ -87,8 +95,14 @@ export default function HomeIntro({ children, title, revealTitle }: HomeIntroPro
         style={{ transitionDuration: `${LIFT_DURATION_MS}ms` }}
       >
         <div className="relative">
-          {logo}
-          <TitleReveal title={title} active={showTitle && logoUndrawn} />
+          <LogoSvg
+            data={logoData}
+            width={368}
+            height={155}
+            drawn={!showTitle}
+            onUndrawComplete={handleUndrawComplete}
+          />
+          <TitleReveal title={title} rotations={titleRotations} active={showTitle && logoUndrawn} />
         </div>
       </div>
     </>

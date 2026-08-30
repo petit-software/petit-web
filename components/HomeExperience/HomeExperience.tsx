@@ -3,19 +3,27 @@
 import { useCallback, useState } from "react";
 import HomeGrid from "@/components/HomeGrid";
 import HomeIntro from "@/components/HomeIntro";
+import type { LogoSvgData } from "@/components/Logo/parseLogo";
 import type { Product } from "@/lib/products";
 
-const TITLE = "A boutique AI studio. Zürich + remote. We build AI agents that pay for themselves.";
+const TITLE = "A boutique AI studio. Zürich + remote.";
+const TITLE_ROTATIONS = [
+  "We build AI agents that pay for themselves.",
+  "We foster growth with a use of dedicated AI automations.",
+  "We build AI solution for private and business of any size.",
+  "We give small teams the output of a much larger one.",
+  "We turn the repetitive work into software that runs itself.",
+];
 
 interface HomeExperienceProps {
   products: Product[];
-  logo: React.ReactNode;
+  logoData: LogoSvgData;
 }
 
 // Coordinates the intro's logo with the ticker's visibility: HomeIntro and
 // HomeGrid are siblings, so the "ticker is on screen" signal has to be
 // lifted here to reach both.
-export default function HomeExperience({ products, logo }: HomeExperienceProps) {
+export default function HomeExperience({ products, logoData }: HomeExperienceProps) {
   const [revealTitle, setRevealTitle] = useState(false);
 
   const handleTickerVisible = useCallback(() => {
@@ -24,9 +32,12 @@ export default function HomeExperience({ products, logo }: HomeExperienceProps) 
 
   return (
     <>
-      <HomeIntro title={TITLE} revealTitle={revealTitle}>
-        {logo}
-      </HomeIntro>
+      <HomeIntro
+        title={TITLE}
+        titleRotations={TITLE_ROTATIONS}
+        revealTitle={revealTitle}
+        logoData={logoData}
+      />
       <HomeGrid products={products} onTickerVisible={handleTickerVisible} />
     </>
   );
