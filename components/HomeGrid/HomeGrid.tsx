@@ -10,9 +10,10 @@ import type { Product } from "@/lib/products";
 // same instant the curtain starts fading (see HomeIntro) — so the section
 // is already in motion as the curtain dissolves instead of waiting for the
 // curtain to fully clear first.
+const SLIDE_DURATION_MS = 800;
 const slideTransition: Transition = {
   delay: INTRO_HOLD_MS / 1000,
-  duration: 0.8,
+  duration: SLIDE_DURATION_MS / 1000,
   ease: [0.22, 1, 0.36, 1],
 };
 
@@ -29,19 +30,23 @@ export default function HomeGrid({ products, onTickerVisible }: HomeGridProps) {
   // React commit instead of racing two independently-scheduled timers.
   const [tickerVisible, setTickerVisible] = useState(false);
 
-  // Reduced motion skips the slide-in entirely, so there's no animation
-  // completion to hook into — fire as soon as it would have appeared.
+  // Keep the content handoff on the same deterministic timeline as the intro.
+  // Depending on Motion's completion callback here is fragile because the
+  // ticker mounts and measures itself while its parent is animating.
   useEffect(() => {
     if (reduce) {
       setTickerVisible(true);
       onTickerVisible?.();
+      return;
     }
-  }, [reduce, onTickerVisible]);
 
-  const handleAsideVisible = () => {
-    setTickerVisible(true);
-    onTickerVisible?.();
-  };
+    const timer = window.setTimeout(() => {
+      setTickerVisible(true);
+      onTickerVisible?.();
+    }, INTRO_HOLD_MS + SLIDE_DURATION_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [reduce, onTickerVisible]);
 
   return (
     <main className="flex min-h-dvh flex-col overflow-x-clip bg-card md:h-dvh md:overflow-hidden">
@@ -56,7 +61,6 @@ export default function HomeGrid({ products, onTickerVisible }: HomeGridProps) {
         initial={reduce ? false : { y: 32, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={slideTransition}
-        onAnimationComplete={reduce ? undefined : handleAsideVisible}
       >
         <ProductTicker products={products} revealed={tickerVisible} />
       </motion.aside>
