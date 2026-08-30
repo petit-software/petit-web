@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,6 +20,13 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/products";
+
+// Tag colours are keyed off the label itself, so a product only has to name
+// its tag. Anything unlisted falls back to the neutral secondary badge.
+const TAG_CLASSES: Record<string, string> = {
+  Partnership: "bg-tag-partnership text-tag-partnership-foreground",
+  "Client Work": "bg-tag-client text-tag-client-foreground",
+};
 
 interface ProductCardProps {
   product: Product;
@@ -64,13 +72,21 @@ export default function ProductCard({ product, open, onOpenChange }: ProductCard
   return (
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
       <SheetTrigger className="w-full rounded-[24px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Card className="cursor-pointer rounded-[24px] bg-transparent p-[20px] ring-1 ring-border">
+        <Card className="relative cursor-pointer rounded-[24px] bg-transparent p-[20px] pt-0 ring-1 ring-border">
           <ProductMedia
             product={product}
             src={product.image}
             className="aspect-square rounded-[14px]"
             sizes="25vw"
           />
+          {product.tag && (
+            <Badge
+              variant="secondary"
+              className={cn("absolute top-4 right-4", TAG_CLASSES[product.tag])}
+            >
+              {product.tag}
+            </Badge>
+          )}
           <CardHeader className="px-0">
             <CardTitle>{product.name}</CardTitle>
             <CardDescription>{product.description}</CardDescription>

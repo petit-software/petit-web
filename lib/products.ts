@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
@@ -18,6 +19,9 @@ export interface Product {
   /** "owner/repo" for an open-source product. Drives the GitHub link and the
    *  latest-release download button. */
   github?: string;
+  /** Optional short label shown in the tile's top-right corner, e.g.
+   *  "Open-Source" or "Partnership". */
+  tag?: string;
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), "content", "products");
@@ -37,6 +41,18 @@ function findImage(dir: string, basename: string): string | undefined {
     return base === basename && IMAGE_EXTENSIONS.includes(ext);
   });
   return match?.name;
+}
+
+// Product image URLs are stable across edits — same slug, same cover.<ext> —
+// so swapping the artwork leaves browsers (and the image optimizer) serving
+// the previous file from cache. Tagging the URL with a hash of the contents
+// makes a new image a new URL, and an unchanged one keep its cache.
+function fingerprint(filePath: string): string {
+  return crypto.createHash("sha1").update(fs.readFileSync(filePath)).digest("hex").slice(0, 8);
+}
+
+function publicImageUrl(id: string, dir: string, file: string): string {
+  return `/products/${id}/${file}?v=${fingerprint(path.join(dir, file))}`;
 }
 
 /**
@@ -64,7 +80,7 @@ export function getProducts(): Product[] {
 
     const coverFile = findImage(dir, COVER_BASENAME);
     const detailFile = findImage(dir, DETAIL_BASENAME);
-    const cover = coverFile ? `/products/${id}/${coverFile}` : undefined;
+    const cover = coverFile ? publicImageUrl(id, dir, coverFile) : undefined;
 
     return {
       id,
@@ -72,9 +88,10 @@ export function getProducts(): Product[] {
       description: data.description,
       url: data.url,
       image: cover,
-      detailImage: detailFile ? `/products/${id}/${detailFile}` : cover,
+      detailImage: detailFile ? publicImageUrl(id, dir, detailFile) : cover,
       imageAlt: data.imageAlt,
       github: data.github,
+      tag: data.tag,
       details: content.trim(),
     };
   });
