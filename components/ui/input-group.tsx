@@ -70,8 +70,11 @@ const inputGroupButtonVariants = cva(
   {
     variants: {
       size: {
+        // Both variants pin their own box. sm used to be empty, inheriting
+        // whatever the Button default size was, which broke the moment that
+        // default grew to 56px — these sit inside a 32px input group.
         xs: "h-6 gap-1 rounded-[calc(var(--radius)-3px)] px-1.5 [&>svg:not([class*='size-'])]:size-3.5",
-        sm: "",
+        sm: "h-8 gap-1.5 px-2.5",
         "icon-xs":
           "size-6 rounded-[calc(var(--radius)-3px)] p-0 has-[>svg]:p-0",
         "icon-sm": "size-8 p-0 has-[>svg]:p-0",
