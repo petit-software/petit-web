@@ -2,6 +2,7 @@
 name: Clio for macOS
 description: Open source local AI scribe for your everyday work.
 url: https://github.com/petit-software/clio
+tag: Open-Source
 github: petit-software/clio
 ---
 
