@@ -159,18 +159,12 @@ export default function ProductCard({ product, open, onOpenChange, still }: Prod
           )}
           <CardHeader
             className={cn(
-              // Text sits the same distance from the tile's edges in either
-              // layout: an overlay panel spends 8px of margin plus 12px of
-              // padding, so 20px at the sides and foot and 12px at the top. The
-              // vertical totals have to match too, or a mixed belt goes ragged.
               "px-5 pt-3 pb-5",
-              // A panel floating on the media, inset 1rem from the tile's foot
-              // and sides. relative so it paints above the out-of-flow cover.
-              // The 12px padding plus the 16px bottom margin come to the same
-              // 40px the standard layout spends on padding alone, which is
-              // what keeps an overlay tile exactly as tall as a standard one.
+              // A panel floating on the media, inset 0.75rem from the tile's
+              // sides and foot. relative so it paints above the out-of-flow
+              // cover.
               isOverlay &&
-                "relative mx-2 mb-2 rounded-[14px] bg-background p-3 [corner-shape:superellipse(1.1)]",
+                "relative mx-3 mb-3 rounded-[14px] bg-background p-3 [corner-shape:superellipse(1.1)]",
             )}
           >
             <CardTitle>{product.name}</CardTitle>
