@@ -7,3 +7,6 @@ node_modules
 # Mirrored at build/dev time from content/products/<slug>/*; source of truth
 # lives in content/products, not here.
 /public/products
+
+# Local context written by the Ultra app; machine-specific bookmarks.
+.ultra
