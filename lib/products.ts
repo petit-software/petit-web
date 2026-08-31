@@ -22,23 +22,31 @@ export interface Product {
   /** Optional short label shown in the tile's top-right corner, e.g.
    *  "Open-Source" or "Partnership". */
   tag?: string;
+  /** How the cover fills the tile's box. Defaults to "contain", which shows
+   *  the whole frame; "cover" fills the tile and crops. Worth setting when the
+   *  cover's aspect does not match the tile's — a 16:9 clip in a square box
+   *  letterboxes under "contain" and fills under "cover". */
+  coverFit?: "cover" | "contain";
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), "content", "products");
 const COVER_BASENAME = "cover";
 const DETAIL_BASENAME = "detail";
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"];
+const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov"];
+const MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
 
-// A product's images are just cover.<ext> / detail.<ext> sitting next to its
+// A product's media is just cover.<ext> / detail.<ext> sitting next to its
 // index.md — no frontmatter field to fill in, just name the file and it's
-// picked up. cover is the ticker tile, detail is the drawer.
-function findImage(dir: string, basename: string): string | undefined {
+// picked up. cover is the ticker tile, detail is the drawer. Either may be a
+// still or a short video; the renderer branches on the extension.
+function findMedia(dir: string, basename: string): string | undefined {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const match = entries.find((entry) => {
     if (!entry.isFile()) return false;
     const ext = path.extname(entry.name).toLowerCase();
     const base = path.basename(entry.name, ext).toLowerCase();
-    return base === basename && IMAGE_EXTENSIONS.includes(ext);
+    return base === basename && MEDIA_EXTENSIONS.includes(ext);
   });
   return match?.name;
 }
@@ -78,8 +86,15 @@ export function getProducts(): Product[] {
       }
     }
 
-    const coverFile = findImage(dir, COVER_BASENAME);
-    const detailFile = findImage(dir, DETAIL_BASENAME);
+    const coverFit = data.coverFit;
+    if (coverFit !== undefined && coverFit !== "cover" && coverFit !== "contain") {
+      throw new Error(
+        `content/products/${id}/index.md has an invalid "coverFit" (${coverFit}); expected "cover" or "contain"`,
+      );
+    }
+
+    const coverFile = findMedia(dir, COVER_BASENAME);
+    const detailFile = findMedia(dir, DETAIL_BASENAME);
     const cover = coverFile ? publicImageUrl(id, dir, coverFile) : undefined;
 
     return {
@@ -92,6 +107,7 @@ export function getProducts(): Product[] {
       imageAlt: data.imageAlt,
       github: data.github,
       tag: data.tag,
+      coverFit,
       details: content.trim(),
     };
   });

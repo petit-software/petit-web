@@ -4,7 +4,10 @@ import path from "node:path";
 const projectRoot = process.cwd();
 const contentRoot = path.join(projectRoot, "content", "products");
 const publicRoot = path.join(projectRoot, "public", "products");
-const imageExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"]);
+const imageExtensions = new Set([
+  ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif",
+  ".mp4", ".webm", ".mov",
+]);
 
 // cover.<ext> is the ticker tile, detail.<ext> is the drawer. Both are
 // optional; whichever exist get mirrored into public/.

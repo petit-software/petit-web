@@ -38,6 +38,8 @@
     --color-tag-partnership-foreground: var(--tag-partnership-foreground);
     --color-tag-client: var(--tag-client);
     --color-tag-client-foreground: var(--tag-client-foreground);
+    --color-tag-experiment: var(--tag-experiment);
+    --color-tag-experiment-foreground: var(--tag-experiment-foreground);
     --color-chart-5: var(--chart-5);
     --color-chart-4: var(--chart-4);
     --color-chart-3: var(--chart-3);
@@ -101,6 +103,8 @@
     --tag-partnership-foreground: oklch(0.44 0.16 300);
     --tag-client: oklch(0.95 0.042 155);
     --tag-client-foreground: oklch(0.43 0.11 155);
+    --tag-experiment: oklch(0.95 0.045 75);
+    --tag-experiment-foreground: oklch(0.45 0.12 75);
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -140,6 +144,8 @@
     --tag-partnership-foreground: oklch(0.86 0.11 300);
     --tag-client: oklch(0.29 0.055 155);
     --tag-client-foreground: oklch(0.86 0.10 155);
+    --tag-experiment: oklch(0.29 0.058 75);
+    --tag-experiment-foreground: oklch(0.86 0.10 75);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);
