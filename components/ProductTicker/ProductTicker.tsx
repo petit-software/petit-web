@@ -30,15 +30,18 @@ const TILE_WIDTH_MAX = 480;
 const HOVER_LIFT = 0.05;
 const GAP = 24; // 1.5rem
 
-// The belt runs over cells, not products: every product takes one cell, and so
-// does the call to action, which sits at the end of each pass through the
-// catalogue. Which cell a slot shows still follows from its order alone, so
-// the mapping cannot drift however long the loop runs. Widening the ask again
-// is a matter of raising this — the width follows from the span.
-const CTA_SPAN = 1;
-// Off-screen buffer kept queued on each side of the visible window so the
-// loop always has tiles ready to enter — 5 ahead, 5 behind.
-const BUFFER = 5;
+// The belt runs over cells, not products, and a cell is half a tile wide — so
+// a span can be one and a half tiles, which whole-tile cells could not express.
+// A product takes two units, the call to action three, and it sits at the end
+// of each pass through the catalogue. Which cell a slot shows still follows
+// from its order alone, so the mapping cannot drift however long the loop runs.
+// Resizing the ask is a matter of this number; the width follows from the span.
+const UNITS_PER_TILE = 2;
+const PRODUCT_SPAN = UNITS_PER_TILE;
+const CTA_SPAN = 3;
+// Off-screen buffer kept queued on each side of the visible window so the loop
+// always has tiles ready to enter. In units: ten is five tiles either side.
+const BUFFER = 10;
 const SPEED = 28; // px/sec ambient drift
 
 // How many of the initially visible tiles get a staggered entrance.
@@ -255,7 +258,9 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     return () => ro.disconnect();
   }, []);
 
-  const step = tileWidth + GAP;
+  // Per unit, not per tile: a tile spans PRODUCT_SPAN of these, and
+  // span * step - GAP gives back exactly the tile width.
+  const step = (tileWidth + GAP) / UNITS_PER_TILE;
   const lift = HOVER_LIFT * Math.min(tileWidth / TILE_WIDTH_MAX, 1);
   // Nothing is positioned until both measurements are in, so the belt never
   // renders a frame at the wrong size.
@@ -288,9 +293,10 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     }
     if (entranceDelaysRef.current === null) {
       const delays = new Map<number, number>();
+      // Orders are units now, so the window and the stagger both step per tile.
       for (const slot of next) {
-        if (slot.order >= 0 && slot.order < ENTRANCE_COUNT) {
-          delays.set(slot.key, slot.order * ENTRANCE_STAGGER);
+        if (slot.order >= 0 && slot.order < ENTRANCE_COUNT * UNITS_PER_TILE) {
+          delays.set(slot.key, (slot.order / UNITS_PER_TILE) * ENTRANCE_STAGGER);
         }
       }
       entranceDelaysRef.current = delays;
@@ -609,7 +615,8 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   // that wraps picks up the next cell for free and the mapping cannot drift no
   // matter how many times the belt recycles. Products take the first cells and
   // the call to action the last CTA_SPAN of them.
-  const cellCount = products.length + CTA_SPAN;
+  const cellCount = products.length * PRODUCT_SPAN + CTA_SPAN;
+  const productUnits = products.length * PRODUCT_SPAN;
   const cellFor = (order: number) => mod(order + BUFFER, cellCount);
 
   // Only one slot may report itself "open" for a given product, even though
@@ -617,7 +624,10 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   const openSlotKey =
     openId == null
       ? undefined
-      : slots.find((slot) => products[cellFor(slot.order)]?.id === openId)?.key;
+      : slots.find((slot) => {
+          const cell = cellFor(slot.order);
+          return cell < productUnits && products[cell / PRODUCT_SPAN]?.id === openId;
+        })?.key;
 
   return (
     <div
@@ -648,11 +658,12 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
       </div>
       {slots.map((slot) => {
         const cell = cellFor(slot.order);
-        // The call to action spans CTA_SPAN cells; only the first renders, and
-        // its width covers the slots behind it, so the belt has no gap.
-        if (cell > products.length) return null;
-        const isCta = cell === products.length;
-        const span = isCta ? CTA_SPAN : 1;
+        // Only a cell's first unit renders; the rest are covered by its width,
+        // so the belt has no gap.
+        const isCta = cell >= productUnits;
+        const isStart = isCta ? cell === productUnits : cell % PRODUCT_SPAN === 0;
+        if (!isStart) return null;
+        const span = isCta ? CTA_SPAN : PRODUCT_SPAN;
         return (
           <TickerTile
             key={slot.key}
@@ -660,7 +671,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
             order={slot.order}
             step={step}
             offsetRef={offsetRef}
-            product={isCta ? null : products[cell]}
+            product={isCta ? null : products[cell / PRODUCT_SPAN]}
             width={span * step - GAP}
             height={isCta ? tileHeight : undefined}
             open={slot.key === openSlotKey}
