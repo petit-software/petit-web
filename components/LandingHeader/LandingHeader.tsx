@@ -1,6 +1,5 @@
 import Link from "next/link";
 import LogoMark from "@/components/LogoMark";
-import FooterToggle from "@/components/FooterToggle";
 
 interface LandingHeaderProps {
   showLogo?: boolean;
@@ -17,7 +16,6 @@ export default function LandingHeader({ showLogo = true }: LandingHeaderProps) {
         ) : (
           <span />
         )}
-        <FooterToggle />
       </div>
     </header>
   );

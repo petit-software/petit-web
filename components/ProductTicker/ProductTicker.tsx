@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
+import CtaTile from "@/components/CtaTile";
 import ProductCard from "@/components/ProductCard";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/products";
@@ -28,6 +29,13 @@ const TILE_WIDTH_MAX = 480;
 // tile, where neighbours sit closer together to begin with.
 const HOVER_LIFT = 0.05;
 const GAP = 24; // 1.5rem
+
+// The belt runs over cells, not products: every product takes one cell, and so
+// does the call to action, which sits at the end of each pass through the
+// catalogue. Which cell a slot shows still follows from its order alone, so
+// the mapping cannot drift however long the loop runs. Widening the ask again
+// is a matter of raising this — the width follows from the span.
+const CTA_SPAN = 1;
 // Off-screen buffer kept queued on each side of the visible window so the
 // loop always has tiles ready to enter — 5 ahead, 5 behind.
 const BUFFER = 5;
@@ -78,7 +86,12 @@ interface ProductTickerProps {
 }
 
 interface TickerTileProps {
-  product: Product;
+  /** null for the call-to-action cell. */
+  product: Product | null;
+  /** Rendered width. A cell spanning several slots covers the gaps between them. */
+  width: number;
+  /** Only the call to action needs one; a product card sizes itself. */
+  height?: number;
   slotKey: number;
   order: number;
   /** Tile width plus gap. Responsive, so it cannot be a module constant. */
@@ -106,6 +119,8 @@ interface TickerTileProps {
 // without this every wrap would re-render the whole belt.
 const TickerTile = memo(function TickerTile({
   product,
+  width,
+  height,
   slotKey,
   order,
   step,
@@ -126,8 +141,8 @@ const TickerTile = memo(function TickerTile({
     [registerElement, slotKey],
   );
   const handleOpenChange = useCallback(
-    (next: boolean) => onOpenChange(product.id, next),
-    [onOpenChange, product.id],
+    (next: boolean) => onOpenChange(product?.id ?? "", next),
+    [onOpenChange, product?.id],
   );
   const handleMouseEnter = useCallback(() => onHoverChange(slotKey, true), [onHoverChange, slotKey]);
   const handleMouseLeave = useCallback(() => onHoverChange(slotKey, false), [onHoverChange, slotKey]);
@@ -138,15 +153,17 @@ const TickerTile = memo(function TickerTile({
   return (
     <div
       ref={setElement}
-      className={cn("absolute top-0 left-0", TILE_CLASS)}
+      className="absolute top-0 left-0"
       style={{
+        width,
+        height,
         transform: `translate3d(${order * step - offsetRef.current}px, 0, 0)`,
         willChange: "transform",
         zIndex: isHovered ? 10 : 0,
       }}
     >
       <div
-        className={cn("origin-bottom", isEntranceTile && "will-change-transform")}
+        className={cn("h-full origin-bottom", isEntranceTile && "will-change-transform")}
         style={
           isEntranceTile
             ? {
@@ -159,12 +176,16 @@ const TickerTile = memo(function TickerTile({
         }
       >
         <div
-          className="origin-bottom transition-transform duration-300 ease-out"
+          className="h-full origin-bottom transition-transform duration-300 ease-out"
           style={{ transform: `scale(${scale})` }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <ProductCard product={product} open={open} onOpenChange={handleOpenChange} />
+          {product === null ? (
+            <CtaTile />
+          ) : (
+            <ProductCard product={product} open={open} onOpenChange={handleOpenChange} />
+          )}
         </div>
       </div>
     </div>
@@ -217,12 +238,18 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   // that drifts apart.
   const tileProbeRef = useRef<HTMLDivElement>(null);
   const [tileWidth, setTileWidth] = useState(0);
+  // Height too, so the call to action can match a product tile exactly rather
+  // than guessing at whatever the cover and copy currently come to.
+  const [tileHeight, setTileHeight] = useState(0);
   useEffect(() => {
     const el = tileProbeRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? 0;
-      if (width > 0) setTileWidth(width);
+      const box = entries[0]?.contentRect;
+      if (box && box.width > 0) {
+        setTileWidth(box.width);
+        setTileHeight(box.height);
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -571,21 +598,26 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
             />
           </div>
         ))}
+        <div className="shrink-0 self-stretch">
+          <CtaTile />
+        </div>
       </div>
     );
   }
 
-  // Which product a slot shows follows from where it sits on the belt, so a
-  // slot that wraps picks up the next product for free and the mapping cannot
-  // drift no matter how many times the belt recycles.
-  const productIndexFor = (order: number) => mod(order + BUFFER, products.length);
+  // Which cell a slot shows follows from where it sits on the belt, so a slot
+  // that wraps picks up the next cell for free and the mapping cannot drift no
+  // matter how many times the belt recycles. Products take the first cells and
+  // the call to action the last CTA_SPAN of them.
+  const cellCount = products.length + CTA_SPAN;
+  const cellFor = (order: number) => mod(order + BUFFER, cellCount);
 
   // Only one slot may report itself "open" for a given product, even though
   // the same product can occupy several slots at once around the loop.
   const openSlotKey =
     openId == null
       ? undefined
-      : slots.find((slot) => products[productIndexFor(slot.order)]?.id === openId)?.key;
+      : slots.find((slot) => products[cellFor(slot.order)]?.id === openId)?.key;
 
   return (
     <div
@@ -614,26 +646,36 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
           </div>
         ))}
       </div>
-      {slots.map((slot) => (
-        <TickerTile
-          key={slot.key}
-          slotKey={slot.key}
-          order={slot.order}
-          step={step}
-          offsetRef={offsetRef}
-          product={products[productIndexFor(slot.order)]}
-          open={slot.key === openSlotKey}
-          isHovered={slot.key === hoveredKey}
-          anyHovered={hoveredKey !== null}
-          anyOpen={anyOpen}
-          lift={lift}
-          playEntrance={playEntrance}
-          entranceDelay={entranceDelaysRef.current?.get(slot.key) ?? null}
-          onOpenChange={handleOpenChange}
-          onHoverChange={handleHoverChange}
-          registerElement={registerElement}
-        />
-      ))}
+      {slots.map((slot) => {
+        const cell = cellFor(slot.order);
+        // The call to action spans CTA_SPAN cells; only the first renders, and
+        // its width covers the slots behind it, so the belt has no gap.
+        if (cell > products.length) return null;
+        const isCta = cell === products.length;
+        const span = isCta ? CTA_SPAN : 1;
+        return (
+          <TickerTile
+            key={slot.key}
+            slotKey={slot.key}
+            order={slot.order}
+            step={step}
+            offsetRef={offsetRef}
+            product={isCta ? null : products[cell]}
+            width={span * step - GAP}
+            height={isCta ? tileHeight : undefined}
+            open={slot.key === openSlotKey}
+            isHovered={slot.key === hoveredKey}
+            anyHovered={hoveredKey !== null}
+            anyOpen={anyOpen}
+            lift={lift}
+            playEntrance={playEntrance}
+            entranceDelay={entranceDelaysRef.current?.get(slot.key) ?? null}
+            onOpenChange={handleOpenChange}
+            onHoverChange={handleHoverChange}
+            registerElement={registerElement}
+          />
+        );
+      })}
     </div>
   );
 }
