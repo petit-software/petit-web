@@ -38,6 +38,7 @@
     --color-tag-partnership-foreground: var(--tag-partnership-foreground);
     --color-tag-client: var(--tag-client);
     --color-tag-client-foreground: var(--tag-client-foreground);
+    --color-cta: var(--cta);
     --color-tag-experiment: var(--tag-experiment);
     --color-tag-experiment-foreground: var(--tag-experiment-foreground);
     --color-chart-5: var(--chart-5);
@@ -105,6 +106,8 @@
     --tag-client-foreground: oklch(0.43 0.11 155);
     --tag-experiment: oklch(0.95 0.045 75);
     --tag-experiment-foreground: oklch(0.45 0.12 75);
+    /* The call-to-action tile's ground. #F7FCFF. */
+    --cta: oklch(0.988 0.007 234);
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -146,6 +149,8 @@
     --tag-client-foreground: oklch(0.86 0.10 155);
     --tag-experiment: oklch(0.29 0.058 75);
     --tag-experiment-foreground: oklch(0.86 0.10 75);
+    /* Same hue, inverted for dark: a near-black with the faintest blue in it. */
+    --cta: oklch(0.21 0.012 234);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);
