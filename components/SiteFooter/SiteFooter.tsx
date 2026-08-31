@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { MinusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/ThemeToggle";
 import { FOOTER_HEIGHT, useFooter } from "@/components/FooterProvider/context";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +42,6 @@ export default function SiteFooter() {
             Contact
           </a>
         </div>
-        <ThemeToggle />
       </div>
     </footer>
   );
