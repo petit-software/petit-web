@@ -6,9 +6,20 @@ import ProductCard from "@/components/ProductCard";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/products";
 
-const TILE_WIDTH = 480;
+// 1440px is the small/big desktop line. Below it tiles track the viewport so
+// roughly four sit across; at and above it they step up to full size. The belt
+// measures the rendered width rather than assuming it, so this class is the
+// only place the size is decided — no matching arithmetic to keep in sync.
+const TILE_CLASS = "w-[clamp(280px,24vw,346px)] min-[1440px]:w-[480px]";
+// Mirrors the clamp's upper bound. Only used to taper the hover lift, so a
+// mismatch here softens an effect rather than breaking the belt's geometry —
+// unlike the tile width itself, which is measured rather than assumed.
+const TILE_WIDTH_MAX = 480;
+// Hover lifts the tile and settles its neighbours by the same amount. Scaled
+// down with the tile: 5% reads right at full size but too eager on a narrow
+// tile, where neighbours sit closer together to begin with.
+const HOVER_LIFT = 0.05;
 const GAP = 24; // 1.5rem
-const STEP = TILE_WIDTH + GAP;
 // Off-screen buffer kept queued on each side of the visible window so the
 // loop always has tiles ready to enter — 5 ahead, 5 behind.
 const BUFFER = 5;
@@ -32,7 +43,7 @@ const MOMENTUM_FRICTION = 0.94; // fraction of velocity retained per 16ms
 const MOMENTUM_MIN = 0.02; // px/ms — below this, momentum stops
 const MOMENTUM_MAX = 4; // px/ms — ceiling for a violent flick
 
-// Position is only ever read as (order * STEP - offset), so shifting both by
+// Position is only ever read as (order * step - offset), so shifting both by
 // the same amount moves nothing on screen — and when that amount is a whole
 // number of catalog lengths, every tile also keeps the product it was already
 // showing. Rebasing on that basis keeps the two numbers from growing without
@@ -62,6 +73,8 @@ interface TickerTileProps {
   product: Product;
   slotKey: number;
   order: number;
+  /** Tile width plus gap. Responsive, so it cannot be a module constant. */
+  step: number;
   /** Read once per commit for the mount/recycle transform; the rAF loop owns
    *  the value from then on. A ref rather than a number so a moving belt does
    *  not invalidate the memo on every frame. */
@@ -70,6 +83,8 @@ interface TickerTileProps {
   isHovered: boolean;
   anyHovered: boolean;
   anyOpen: boolean;
+  /** Hover lift, tapered to the current tile width. */
+  lift: number;
   playEntrance: boolean;
   /** ms of stagger, or null for a tile that was never part of the entrance. */
   entranceDelay: number | null;
@@ -85,11 +100,13 @@ const TickerTile = memo(function TickerTile({
   product,
   slotKey,
   order,
+  step,
   offsetRef,
   open,
   isHovered,
   anyHovered,
   anyOpen,
+  lift,
   playEntrance,
   entranceDelay,
   onOpenChange,
@@ -108,13 +125,14 @@ const TickerTile = memo(function TickerTile({
   const handleMouseLeave = useCallback(() => onHoverChange(slotKey, false), [onHoverChange, slotKey]);
 
   const isEntranceTile = entranceDelay !== null;
+  const scale = anyOpen ? 1 : isHovered ? 1 + lift : anyHovered ? 1 - lift : 1;
 
   return (
     <div
       ref={setElement}
-      className="absolute top-0 left-0 w-[480px]"
+      className={cn("absolute top-0 left-0", TILE_CLASS)}
       style={{
-        transform: `translate3d(${order * STEP - offsetRef.current}px, 0, 0)`,
+        transform: `translate3d(${order * step - offsetRef.current}px, 0, 0)`,
         willChange: "transform",
         zIndex: isHovered ? 10 : 0,
       }}
@@ -133,10 +151,8 @@ const TickerTile = memo(function TickerTile({
         }
       >
         <div
-          className={cn(
-            "origin-bottom transition-transform duration-300 ease-out",
-            !anyOpen && isHovered ? "scale-105" : !anyOpen && anyHovered ? "scale-95" : "scale-100",
-          )}
+          className="origin-bottom transition-transform duration-300 ease-out"
+          style={{ transform: `scale(${scale})` }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
@@ -160,19 +176,56 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [visibleCount, setVisibleCount] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // The band's viewport box, cached. The wheel handler hit-tests against it,
+  // and the belt rewrites transforms every frame, so measuring in the wheel
+  // handler itself would force layout on every event.
+  const bandRectRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      bandRectRef.current = rect;
+      setContainerWidth(rect.width);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+    };
+  }, []);
+
+  // The tile width is whatever CSS resolved TILE_CLASS to, measured off a real
+  // tile rather than duplicated as a number here. A breakpoint or clamp in the
+  // class then needs no matching arithmetic, which is exactly the kind of pair
+  // that drifts apart.
+  const tileProbeRef = useRef<HTMLDivElement>(null);
+  const [tileWidth, setTileWidth] = useState(0);
+  useEffect(() => {
+    const el = tileProbeRef.current;
+    if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? 0;
-      setVisibleCount(Math.max(1, Math.ceil(width / STEP) + 1));
+      if (width > 0) setTileWidth(width);
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
+  const step = tileWidth + GAP;
+  const lift = HOVER_LIFT * Math.min(tileWidth / TILE_WIDTH_MAX, 1);
+  // Nothing is positioned until both measurements are in, so the belt never
+  // renders a frame at the wrong size.
+  const visibleCount =
+    tileWidth > 0 && containerWidth > 0 ? Math.max(1, Math.ceil(containerWidth / step) + 1) : 0;
   const slotCount = visibleCount > 0 ? visibleCount + BUFFER * 2 : 0;
 
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -253,12 +306,33 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   const momentumRef = useRef(0); // px/ms, applied after release
 
   // User scroll (wheel/trackpad) drives offsetRef directly, in either
-  // direction. Must be a native, non-passive listener so preventDefault
-  // (which stops the page from also scrolling vertically) actually works.
+  // direction. Must be a non-passive listener so preventDefault (which stops
+  // the page from also scrolling vertically) actually works.
+  //
+  // Bound to the window and hit-tested against the band's box rather than
+  // bound to the container: every tile is absolutely positioned and scaled, so
+  // the topmost element under the cursor in the gaps between them is not
+  // reliably a descendant of the container, and a listener on the container
+  // never sees those events. Geometry does not care what the tiles are doing.
   useEffect(() => {
     const el = containerRef.current;
     if (!el || reduce) return;
+
+    const overBand = (e: WheelEvent) => {
+      const target = e.target;
+      if (target instanceof Node && el.contains(target)) return true;
+      const rect = bandRectRef.current;
+      if (rect === null) return false;
+      return (
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom
+      );
+    };
+
     const onWheel = (e: WheelEvent) => {
+      if (!overBand(e)) return;
       const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (delta === 0) return;
       // A deliberate scroll takes over from any leftover flick.
@@ -266,8 +340,9 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
       offsetRef.current += delta;
       e.preventDefault();
     };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
   }, [reduce]);
 
   // Pointer drag: mouse, touch and pen through one set of handlers.
@@ -439,8 +514,8 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
 
       if (Math.abs(offsetRef.current) > REBASE_THRESHOLD) {
         // Whole catalog lengths only, so every tile keeps its product.
-        const shift = Math.trunc(offsetRef.current / (STEP * products.length)) * products.length;
-        offsetRef.current -= shift * STEP;
+        const shift = Math.trunc(offsetRef.current / (step * products.length)) * products.length;
+        offsetRef.current -= shift * step;
         for (const slot of current) slot.order -= shift;
         changed = true;
       }
@@ -449,7 +524,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
       // Re-deriving that every frame — rather than stepping one recycle at a
       // time — means any jump, however large, lands correctly in one frame,
       // and no per-recycle bookkeeping can drift out of sync over time.
-      const base = Math.floor(offsetRef.current / STEP) - BUFFER;
+      const base = Math.floor(offsetRef.current / step) - BUFFER;
       for (const slot of current) {
         const wrapped = base + mod(slot.order - base, count);
         if (wrapped !== slot.order) {
@@ -458,7 +533,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
         }
         const el = elementsRef.current.get(slot.key);
         if (el) {
-          el.style.transform = `translate3d(${slot.order * STEP - offsetRef.current}px, 0, 0)`;
+          el.style.transform = `translate3d(${slot.order * step - offsetRef.current}px, 0, 0)`;
         }
       }
 
@@ -470,7 +545,9 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [reduce, products.length]);
+    // step changes only when the breakpoint is crossed; the loop re-derives
+    // every position from it on the next frame, so a restart costs nothing.
+  }, [reduce, products.length, step]);
 
   if (products.length === 0) return null;
 
@@ -478,7 +555,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     return (
       <div className="flex w-full items-center gap-6 overflow-x-auto px-4 pt-4 pb-6">
         {products.map((product) => (
-          <div key={product.id} className="w-[480px] shrink-0">
+          <div key={product.id} className={cn("shrink-0", TILE_CLASS)}>
             <ProductCard
               product={product}
               open={openId === product.id}
@@ -519,9 +596,13 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
       {/* Sizer: not part of the animated belt, just establishes the band's
           height from the tallest product tile so nothing gets clipped. */}
       <div className="invisible grid" aria-hidden="true" inert>
-        {products.map((product) => (
-          <div key={product.id} className="col-start-1 row-start-1 w-[480px]">
-            <ProductCard product={product} open={false} onOpenChange={() => {}} />
+        {products.map((product, index) => (
+          <div
+            key={product.id}
+            ref={index === 0 ? tileProbeRef : undefined}
+            className={cn("col-start-1 row-start-1", TILE_CLASS)}
+          >
+            <ProductCard product={product} open={false} onOpenChange={() => {}} still />
           </div>
         ))}
       </div>
@@ -530,12 +611,14 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
           key={slot.key}
           slotKey={slot.key}
           order={slot.order}
+          step={step}
           offsetRef={offsetRef}
           product={products[productIndexFor(slot.order)]}
           open={slot.key === openSlotKey}
           isHovered={slot.key === hoveredKey}
           anyHovered={hoveredKey !== null}
           anyOpen={anyOpen}
+          lift={lift}
           playEntrance={playEntrance}
           entranceDelay={entranceDelaysRef.current?.get(slot.key) ?? null}
           onOpenChange={handleOpenChange}
