@@ -6,11 +6,19 @@ import ProductCard from "@/components/ProductCard";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/products";
 
-// 1440px is the small/big desktop line. Below it tiles track the viewport so
-// roughly four sit across; at and above it they step up to full size. The belt
-// measures the rendered width rather than assuming it, so this class is the
-// only place the size is decided — no matching arithmetic to keep in sync.
-const TILE_CLASS = "w-[clamp(280px,24vw,346px)] min-[1440px]:w-[480px]";
+// 1280px is the small/big desktop line. Below it tiles track the viewport so
+// roughly four sit across; at and above it they step up to full size.
+//
+// Height is in the budget as well as width. Above the line the card is square,
+// so a tile is exactly as tall as it is wide, and a width picked from vw alone
+// would overflow a short screen — the band would eat the section above it and
+// then be clipped. min() takes whichever of the two budgets is tighter.
+//
+// The belt measures the rendered width rather than assuming it, so this class
+// is the only place size is decided: a vh term needs no matching arithmetic,
+// and a height-only resize still re-measures because the width changes with it.
+const TILE_CLASS =
+  "w-[clamp(280px,min(24vw,46vh),346px)] min-[1280px]:w-[min(480px,52vh)]";
 // Mirrors the clamp's upper bound. Only used to taper the hover lift, so a
 // mismatch here softens an effect rather than breaking the belt's geometry —
 // unlike the tile width itself, which is measured rather than assumed.

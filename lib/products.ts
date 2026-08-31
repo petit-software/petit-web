@@ -27,6 +27,16 @@ export interface Product {
    *  cover's aspect does not match the tile's — a 16:9 clip in a square box
    *  letterboxes under "contain" and fills under "cover". */
   coverFit?: "cover" | "contain";
+  /** Which part of the cover survives when "cover" crops it. Defaults to
+   *  centre, which is wrong whenever the subject sits off-centre. */
+  coverPosition?: "center" | "top" | "bottom" | "left" | "right";
+  /** "overlay" spreads the cover across the whole tile and floats the title
+   *  and description over its foot. Defaults to "standard", which stacks the
+   *  cover above the text. Both are the same height, so a belt can mix them. */
+  tileLayout?: "standard" | "overlay";
+  /** Position in the ticker. Products without one sort after those with one,
+   *  alphabetically by slug. */
+  order?: number;
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), "content", "products");
@@ -65,8 +75,12 @@ function publicImageUrl(id: string, dir: string, file: string): string {
 
 /**
  * Server-only: discovers every content/products/<slug>/ folder — each holding
- * an index.md plus an optional cover.<ext> image — and reads it as a Product.
+ * an index.md plus optional cover/detail media — and reads it as a Product.
  * Adding a new folder makes it show up automatically; nothing to register.
+ *
+ * Ordering is by the optional `order` frontmatter field, then by slug, so a
+ * product can be positioned without renaming its folder — the slug is baked
+ * into its media URLs.
  */
 export function getProducts(): Product[] {
   const slugs = fs
@@ -75,7 +89,7 @@ export function getProducts(): Product[] {
     .map((entry) => entry.name)
     .sort();
 
-  return slugs.map((id) => {
+  const products = slugs.map((id) => {
     const dir = path.join(CONTENT_ROOT, id);
     const filePath = path.join(dir, "index.md");
     const { data, content } = matter(fs.readFileSync(filePath, "utf-8"));
@@ -90,6 +104,30 @@ export function getProducts(): Product[] {
     if (coverFit !== undefined && coverFit !== "cover" && coverFit !== "contain") {
       throw new Error(
         `content/products/${id}/index.md has an invalid "coverFit" (${coverFit}); expected "cover" or "contain"`,
+      );
+    }
+
+    const order = data.order;
+    if (order !== undefined && typeof order !== "number") {
+      throw new Error(
+        `content/products/${id}/index.md has a non-numeric "order" (${order})`,
+      );
+    }
+
+    const coverPosition = data.coverPosition;
+    if (
+      coverPosition !== undefined &&
+      !["center", "top", "bottom", "left", "right"].includes(coverPosition)
+    ) {
+      throw new Error(
+        `content/products/${id}/index.md has an invalid "coverPosition" (${coverPosition}); expected center, top, bottom, left or right`,
+      );
+    }
+
+    const tileLayout = data.tileLayout;
+    if (tileLayout !== undefined && tileLayout !== "standard" && tileLayout !== "overlay") {
+      throw new Error(
+        `content/products/${id}/index.md has an invalid "tileLayout" (${tileLayout}); expected "standard" or "overlay"`,
       );
     }
 
@@ -108,7 +146,16 @@ export function getProducts(): Product[] {
       github: data.github,
       tag: data.tag,
       coverFit,
+      coverPosition,
+      tileLayout,
+      order,
       details: content.trim(),
     };
   });
+
+  return products.sort(
+    (a, b) =>
+      (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
+      a.id.localeCompare(b.id),
+  );
 }
