@@ -1,9 +1,8 @@
 ---
-name: Petit Social
-description: Social media automation for small teams.
-url: https://petit.example.com/social
+name: Fino
+description: Write better, anywhere.
+url: https://petit.example.com/fino
+tag: Experiment
 ---
 
-Petit Social plans, writes, and schedules your social posts so a two-person team can show up like a ten-person one. Connect your accounts, set a cadence, and review a week of content in minutes.
-
-Drafts stay in your voice, approvals stay in your hands, and everything ships on time without the daily scramble.
+Fino brings AI to any text field, helping you rewrite, improve, translate, or create text without leaving what you’re doing.
