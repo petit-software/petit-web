@@ -1,4 +1,5 @@
 ---
+order: 1
 name: Clarity and Context
 description: Make sensitive conversations a little easier.
 url: /clarity

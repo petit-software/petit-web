@@ -1,4 +1,5 @@
 ---
+order: 6
 name: Ultra for macOS
 description: Put your agents to work without leaving the terminal.
 url: https://github.com/petit-software/ultra-swift
