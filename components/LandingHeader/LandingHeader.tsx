@@ -1,4 +1,7 @@
 import HeroMark from "@/components/HeroMark";
+import LogoWordmark from "@/components/LogoWordmark";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface LandingHeaderProps {
   showLogo?: boolean;
@@ -8,17 +11,33 @@ interface LandingHeaderProps {
 }
 
 export default function LandingHeader({ showLogo = true, logoActive = true }: LandingHeaderProps) {
+  // The wordmark and the button carry no animation of their own; they fade on
+  // the same signal the mark draws on, so the header arrives as one thing
+  // rather than two thirds of it sitting there waiting for the middle.
+  const arrival = cn(
+    "transition-opacity duration-500 ease-out",
+    logoActive ? "opacity-100" : "opacity-0",
+  );
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full">
-      <div className="flex w-full items-center justify-center px-6 py-4">
+      {/* Three columns rather than justify-between, so the mark stays truly
+          centred instead of being pushed off centre by the button's width. */}
+      <div className="grid w-full grid-cols-3 items-center px-4 py-4">
+        <span className={cn("inline-flex justify-self-start", arrival)}>
+          <LogoWordmark height={22} />
+        </span>
         {showLogo ? (
           // Deliberately not a link: it is a mark, not navigation.
-          <span className="inline-flex items-center">
+          <span className="inline-flex justify-self-center">
             <HeroMark active={logoActive} height={27} />
           </span>
         ) : (
           <span />
         )}
+        <Button asChild size="lg" className={cn("justify-self-end px-4", arrival)}>
+          <a href="mailto:dev@petit.software">Build</a>
+        </Button>
       </div>
     </header>
   );
