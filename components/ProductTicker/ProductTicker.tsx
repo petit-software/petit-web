@@ -478,8 +478,14 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     // pointer, the browser takes over the gesture). Without this the drag
     // would never end, and a drag that never ends freezes the belt for good
     // because the loop hands the offset to the pointer for its duration.
+    //
+    // Only the belt's own loss counts. A touch pointer is implicitly captured
+    // by whatever element it lands on, so taking capture for the belt makes
+    // that tile fire lostpointercapture — which bubbles up to here. Ending the
+    // gesture on that killed every touch drag one move after it began, while
+    // leaving mouse drags (which have no implicit capture) working.
     const onLostCapture = (e: PointerEvent) => {
-      if (pointerId !== e.pointerId) return;
+      if (pointerId !== e.pointerId || e.target !== el) return;
       pointerId = null;
       endDrag();
     };
