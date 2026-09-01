@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import HomeGrid from "@/components/HomeGrid";
+import LandingHeader from "@/components/LandingHeader";
 import HomeIntro from "@/components/HomeIntro";
 import type { LogoSvgData } from "@/components/Logo/parseLogo";
 import type { Product } from "@/lib/products";
@@ -34,6 +35,10 @@ export default function HomeExperience({ products, logoData }: HomeExperiencePro
 
   return (
     <>
+      {/* Inside HomeExperience rather than beside it on the page, so the mark
+          draws on the very state the hero text reveals on instead of a second
+          timer guessing at the same moment. */}
+      <LandingHeader logoActive={revealTitle} />
       <HomeIntro
         title={TITLE}
         titleRotations={TITLE_ROTATIONS}
