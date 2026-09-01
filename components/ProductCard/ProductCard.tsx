@@ -192,9 +192,15 @@ export default function ProductCard({
           </CardHeader>
         </Card>
       </SheetTrigger>
+      {/* Full-bleed on a phone: flush to the sides and the foot, with the
+          bottom corners squared off against them. w-full is the viewport's
+          width, so pairing it with a side inset over-constrains the box — the
+          browser drops the right inset and the panel hangs off that edge.
+          From sm up it becomes a floating card, inset and capped, where the
+          max-width keeps that pairing honest. */}
       <SheetContent
         side="bottom"
-        className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl border-0 p-0 shadow-2xl sm:max-w-3xl data-[side=bottom]:inset-x-4 data-[side=bottom]:bottom-4 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0"
+        className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl rounded-b-none border-0 p-0 shadow-2xl sm:max-w-3xl sm:rounded-b-2xl data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0 sm:data-[side=bottom]:inset-x-4 sm:data-[side=bottom]:bottom-4"
       >
         {/* Fixed height from sm up so the drawer reads as a panel rather than
             shrink-wrapping the copy; the media column stretches to fill it. */}
