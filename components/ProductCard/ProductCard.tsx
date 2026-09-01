@@ -211,6 +211,12 @@ export default function ProductCard({
           From sm up it becomes a floating card, inset and capped, where the
           max-width keeps that pairing honest. */}
       <SheetContent
+        // Radix restores focus to the trigger when the drawer closes. The belt
+        // drifts the whole time it is open, so that trigger has usually moved
+        // off screen — and focusing an off-screen element makes the browser
+        // scroll it into view, which shunts the whole belt sideways. Nothing
+        // about closing a drawer should move the belt, so decline the restore.
+        onCloseAutoFocus={(event) => event.preventDefault()}
         side="bottom"
         className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl rounded-b-none border-0 p-0 shadow-2xl sm:max-w-3xl sm:rounded-b-2xl data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0 sm:data-[side=bottom]:inset-x-4 sm:data-[side=bottom]:bottom-4"
       >

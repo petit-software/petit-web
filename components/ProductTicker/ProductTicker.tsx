@@ -571,7 +571,11 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
 
       if (Math.abs(offsetRef.current) > REBASE_THRESHOLD) {
         // Whole catalog lengths only, so every tile keeps its product.
-        const shift = Math.trunc(offsetRef.current / (step * products.length)) * products.length;
+        // A whole number of *cells*, not products: the belt has run on cells
+        // since the call to action arrived, and shifting by products.length
+        // would land every slot on a different cell and reshuffle the belt.
+        const cells = products.length * PRODUCT_SPAN + CTA_SPAN;
+        const shift = Math.trunc(offsetRef.current / (step * cells)) * cells;
         offsetRef.current -= shift * step;
         for (const slot of current) slot.order -= shift;
         changed = true;
@@ -610,7 +614,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
 
   if (reduce) {
     return (
-      <div className="flex w-full items-center gap-6 overflow-x-auto px-4 pt-4 pb-3">
+      <div className="flex w-full items-center gap-6 overflow-x-auto px-4 pt-4 pb-3 md:pb-6">
         {products.map((product) => (
           <div key={product.id} className={cn("shrink-0", TILE_CLASS)}>
             <ProductCard
@@ -651,7 +655,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
       // touch-pan-y hands vertical panning to the browser and keeps horizontal
       // gestures for the belt, so a touch drag scrolls the ticker rather than
       // the page.
-      className="relative w-full touch-pan-y pb-3"
+      className="relative w-full touch-pan-y pb-3 md:pb-6"
       onMouseEnter={() => {
         pausedRef.current = true;
       }}
