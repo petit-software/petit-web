@@ -93,7 +93,8 @@ interface TickerTileProps {
   product: Product | null;
   /** Rendered width. A cell spanning several slots covers the gaps between them. */
   width: number;
-  /** Only the call to action needs one; a product card sizes itself. */
+  /** The tallest tile's height, which every tile takes. Undefined only until
+   *  the sizer has been measured. */
   height?: number;
   slotKey: number;
   order: number;
@@ -187,7 +188,12 @@ const TickerTile = memo(function TickerTile({
           {product === null ? (
             <CtaTile />
           ) : (
-            <ProductCard product={product} open={open} onOpenChange={handleOpenChange} />
+            <ProductCard
+              product={product}
+              open={open}
+              onOpenChange={handleOpenChange}
+              fill={height !== undefined}
+            />
           )}
         </div>
       </div>
@@ -241,20 +247,24 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   // that drifts apart.
   const tileProbeRef = useRef<HTMLDivElement>(null);
   const [tileWidth, setTileWidth] = useState(0);
-  // Height too, so the call to action can match a product tile exactly rather
-  // than guessing at whatever the cover and copy currently come to.
+  // Height comes off the sizer as a whole rather than one tile. Its copies are
+  // all stacked in a single grid cell, so its height is the tallest tile's —
+  // which every tile on the belt is then given, so a long description can no
+  // longer leave one tile standing taller than its neighbours.
+  const bandRef = useRef<HTMLDivElement>(null);
   const [tileHeight, setTileHeight] = useState(0);
   useEffect(() => {
-    const el = tileProbeRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const box = entries[0]?.contentRect;
-      if (box && box.width > 0) {
-        setTileWidth(box.width);
-        setTileHeight(box.height);
-      }
+    const probe = tileProbeRef.current;
+    const band = bandRef.current;
+    if (!probe || !band) return;
+    const ro = new ResizeObserver(() => {
+      const width = probe.getBoundingClientRect().width;
+      const height = band.getBoundingClientRect().height;
+      if (width > 0) setTileWidth(width);
+      if (height > 0) setTileHeight(height);
     });
-    ro.observe(el);
+    ro.observe(probe);
+    ro.observe(band);
     return () => ro.disconnect();
   }, []);
 
@@ -600,7 +610,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
 
   if (reduce) {
     return (
-      <div className="flex w-full items-center gap-6 overflow-x-auto px-4 pt-4 pb-6">
+      <div className="flex w-full items-center gap-6 overflow-x-auto px-4 pt-4 pb-3">
         {products.map((product) => (
           <div key={product.id} className={cn("shrink-0", TILE_CLASS)}>
             <ProductCard
@@ -641,7 +651,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
       // touch-pan-y hands vertical panning to the browser and keeps horizontal
       // gestures for the belt, so a touch drag scrolls the ticker rather than
       // the page.
-      className="relative w-full touch-pan-y pb-6"
+      className="relative w-full touch-pan-y pb-3"
       onMouseEnter={() => {
         pausedRef.current = true;
       }}
@@ -651,7 +661,7 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
     >
       {/* Sizer: not part of the animated belt, just establishes the band's
           height from the tallest product tile so nothing gets clipped. */}
-      <div className="invisible grid" aria-hidden="true" inert>
+      <div ref={bandRef} className="invisible grid" aria-hidden="true" inert>
         {products.map((product, index) => (
           <div
             key={product.id}
@@ -679,7 +689,10 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
             offsetRef={offsetRef}
             product={isCta ? null : products[cell / PRODUCT_SPAN]}
             width={span * step - GAP}
-            height={isCta ? tileHeight : undefined}
+            // Every tile, not just the call to action: uniform height is what
+            // keeps the belt's feet level. undefined until the first
+            // measurement lands, so a tile sizes itself rather than to zero.
+            height={tileHeight || undefined}
             open={slot.key === openSlotKey}
             isHovered={slot.key === hoveredKey}
             anyHovered={hoveredKey !== null}

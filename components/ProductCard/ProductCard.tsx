@@ -51,6 +51,12 @@ interface ProductCardProps {
   /** The ticker renders an invisible copy of every card to size its band.
    *  That copy must not decode video it will never show. */
   still?: boolean;
+  /** The belt gives every tile the height of the tallest one, so the card
+   *  fills that height instead of shrink-wrapping its own content, and the
+   *  cover takes up whatever slack the copy leaves. Left off wherever the
+   *  card's height is its own to decide — the sizer copies above all, where a
+   *  flexible cover in an auto-height column would collapse to nothing. */
+  fill?: boolean;
 }
 
 function ProductMedia({
@@ -111,8 +117,19 @@ function ProductMedia({
   );
 }
 
-export default function ProductCard({ product, open, onOpenChange, still }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  open,
+  onOpenChange,
+  still,
+  fill,
+}: ProductCardProps) {
   const isOverlay = product.tileLayout === "overlay";
+  // The cover's box, in both layouts. Given a definite height to fill it takes
+  // the slack; left to itself it holds 16:9 until the tile turns square.
+  const mediaBox = fill
+    ? "min-h-0 flex-1"
+    : "aspect-video min-[1280px]:aspect-auto min-[1280px]:min-h-0 min-[1280px]:flex-1";
 
   // modal={false}: skip Radix's body scroll-lock (react-remove-scroll). The
   // ticker already runs its own wheel-interception to drive the belt;
@@ -121,8 +138,18 @@ export default function ProductCard({ product, open, onOpenChange, still }: Prod
   // no native scroll to lock anyway (md:overflow-hidden).
   return (
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
-      <SheetTrigger className="w-full rounded-[24px] text-left outline-none [corner-shape:superellipse(1.1)] focus-visible:ring-2 focus-visible:ring-ring">
-        <Card className="relative cursor-pointer gap-0 rounded-[24px] bg-transparent p-0 ring-1 ring-border/50 [corner-shape:superellipse(1.1)] min-[1280px]:aspect-square">
+      <SheetTrigger
+        className={cn(
+          "w-full rounded-[24px] text-left outline-none [corner-shape:superellipse(1.1)] focus-visible:ring-2 focus-visible:ring-ring",
+          fill && "h-full",
+        )}
+      >
+        <Card
+          className={cn(
+            "relative cursor-pointer gap-0 rounded-[24px] bg-transparent p-0 ring-1 ring-border/50 [corner-shape:superellipse(1.1)] min-[1280px]:aspect-square",
+            fill && "h-full",
+          )}
+        >
           {/* Both layouts keep the same boxes — a cover-shaped block above a
               text block — so an overlay tile is exactly as tall as a standard
               one and the belt can mix them without going ragged. Overlay only
@@ -134,20 +161,13 @@ export default function ProductCard({ product, open, onOpenChange, still }: Prod
             still={still}
             fit={product.coverFit ?? "contain"}
             position={product.coverPosition}
-            className={cn(
-              isOverlay
-                ? "absolute inset-0 size-full"
-                : "aspect-video min-[1280px]:aspect-auto min-[1280px]:min-h-0 min-[1280px]:flex-1",
-            )}
+            className={isOverlay ? "absolute inset-0 size-full" : mediaBox}
             sizes="25vw"
           />
           {isOverlay && (
             // Holds the cover's share of the height open now that the media
             // itself is out of flow.
-            <div
-              className="aspect-video min-[1280px]:aspect-auto min-[1280px]:min-h-0 min-[1280px]:flex-1"
-              aria-hidden="true"
-            />
+            <div className={mediaBox} aria-hidden="true" />
           )}
           {product.tag && (
             <Badge
