@@ -33,6 +33,7 @@ Marketing site for Petit. The codebase is built around a **landing-page template
 │  ├─ ThemeToggle/                   # DropdownMenu + sun/moon icons
 │  ├─ Logo/                          # animated SVG (kept custom)
 │  ├─ LogoMark/                      # static SVG mark (kept custom)
+│  ├─ AsciiBg/                       # <ascii-bg> web component + its React mount
 │  ├─ LandingPageTemplate/           # composes Hero + Answer + Body + FAQ + CTA
 │  ├─ LandingHero/                   # frontmatter-driven hero with Framer Motion fade-up
 │  ├─ LandingAnswer/                 # shadcn Alert wrapping aeo.summary
@@ -82,10 +83,17 @@ Products (the tiles in the home page's `ProductTicker`) are auto-discovered — 
 6. Optionally add `tag: Some Label` to the frontmatter for a short badge in the tile's top-right corner. Colour is keyed off the label in `TAG_CLASSES` (`components/ProductCard/ProductCard.tsx`): `Partnership` is purple, `Client Work` is green, `Experiment` is amber, and anything else — `Open-Source` included — falls back to the neutral `secondary` badge. The chromatic pairs are the `--tag-*` tokens in `globals.css`, defined for light and dark; add a token pair plus a `TAG_CLASSES` entry to introduce another colour. Omit the field and no badge appears.
 7. Optionally add `github: owner/repo` to the frontmatter for an open-source product. It swaps the drawer's single "Visit product" button for a **Download** + **GitHub** pair; Download points at `/api/download/<slug>`, which resolves the newest release asset at request time (see below).
 8. Optionally add `tileLayout: overlay` to spread the cover across the whole tile with the title and description floating over its foot in a panel. Both layouts render at the same height, so a belt can mix them.
-9. Optionally add `order: <number>` to place the product in the ticker. Products without one sort after those with one, alphabetically by slug — so a folder never has to be renamed to move a tile, which matters because the slug is baked into its media URLs.
-10. That's it — `getProducts()` reads every folder under `content/products/` and the ticker picks it up on the next dev reload or build. No slug list, no import to add.
+9. Optionally add `tileBackground: ascii` to paint a live animated ASCII field behind the tile (see below). Pair it with a cover that has a transparent ground — an opaque cover would just hide it.
+10. Optionally add `order: <number>` to place the product in the ticker. Products without one sort after those with one, alphabetically by slug — so a folder never has to be renamed to move a tile, which matters because the slug is baked into its media URLs.
+11. That's it — `getProducts()` reads every folder under `content/products/` and the ticker picks it up on the next dev reload or build. No slug list, no import to add.
 
 `public/products/` is gitignored — it's a generated mirror of `content/products/<slug>/*`, not a source of truth. `scripts/sync-product-images.mjs` (run from `predev` / `prebuild`) does the copying.
+
+### The ASCII tile background
+
+`components/AsciiBg/ascii-bg.ts` defines `<ascii-bg>`, a zero-configuration Web Component: drop it into any element with `position: relative` and `overflow: hidden` and it fills that element with an animated organic ASCII field on a Canvas 2D layer, behind everything else. It has no attributes, props or options, and no palette — it paints in whatever `currentColor` it inherits, so a theme swap, a token change or a hover on the parent recolours it with nothing wired up. It resizes with its parent through a `ResizeObserver`, takes a subtle distortion from the pointer, freezes under `prefers-reduced-motion`, and tears down its frame, observer and listener on disconnect.
+
+`components/AsciiBg/AsciiBg.tsx` is the React mount: a client component that imports the definition in an effect — the class closes over `HTMLElement`, which does not exist on the server — and renders the element. `ProductCard` renders it for any product with `tileBackground: ascii`, in a wrapper that sets the field's colour and drops it to `-z-10` inside the card's stacking context. The ticker's invisible sizing copies skip it; nobody sees them, and the field costs a repaint a frame either way.
 
 ### Latest-release downloads
 

@@ -4,7 +4,8 @@ name: Ultra for macOS
 description: Put your agents to work without leaving the terminal.
 url: https://github.com/petit-software/ultra-swift
 tag: Open-Source
-coverFit: cover
+tileLayout: overlay
+tileBackground: ascii
 github: petit-software/ultra-swift
 ---
 

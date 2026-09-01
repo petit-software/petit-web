@@ -34,6 +34,9 @@ export interface Product {
    *  and description over its foot. Defaults to "standard", which stacks the
    *  cover above the text. Both are the same height, so a belt can mix them. */
   tileLayout?: "standard" | "overlay";
+  /** "ascii" paints a live animated ASCII field behind the tile's contents,
+   *  in place of a flat card. Defaults to none. */
+  tileBackground?: "ascii";
   /** Position in the ticker. Products without one sort after those with one,
    *  alphabetically by slug. */
   order?: number;
@@ -131,6 +134,13 @@ export function getProducts(): Product[] {
       );
     }
 
+    const tileBackground = data.tileBackground;
+    if (tileBackground !== undefined && tileBackground !== "ascii") {
+      throw new Error(
+        `content/products/${id}/index.md has an invalid "tileBackground" (${tileBackground}); expected "ascii"`,
+      );
+    }
+
     const coverFile = findMedia(dir, COVER_BASENAME);
     const detailFile = findMedia(dir, DETAIL_BASENAME);
     const cover = coverFile ? publicImageUrl(id, dir, coverFile) : undefined;
@@ -148,6 +158,7 @@ export function getProducts(): Product[] {
       coverFit,
       coverPosition,
       tileLayout,
+      tileBackground,
       order,
       details: content.trim(),
     };

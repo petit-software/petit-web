@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useReducedMotion } from "framer-motion";
+import AsciiBg from "@/components/AsciiBg";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,10 +159,20 @@ export default function ProductCard({
       >
         <Card
           className={cn(
-            "relative cursor-pointer gap-0 rounded-[24px] bg-transparent p-0 ring-1 ring-border/50 [corner-shape:superellipse(1.1)] min-[1280px]:aspect-square",
+            "relative isolate cursor-pointer gap-0 rounded-[24px] bg-transparent p-0 ring-1 ring-border/50 [corner-shape:superellipse(1.1)] min-[1280px]:aspect-square",
             fill && "h-full",
           )}
         >
+          {product.tileBackground === "ascii" && !still && (
+            // The field paints in whatever colour it inherits, so the tile
+            // sets one here and dark mode follows the token. -z-10 under an
+            // isolated card keeps it behind every sibling, positioned or not.
+            // Never on the sizer copies: they are invisible, and the field
+            // costs a canvas repaint a frame whether or not anyone sees it.
+            <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[24px] text-foreground/25 [corner-shape:superellipse(1.1)]">
+              <AsciiBg />
+            </div>
+          )}
           {/* Both layouts keep the same boxes — a cover-shaped block above a
               text block — so an overlay tile is exactly as tall as a standard
               one and the belt can mix them without going ragged. Overlay only
