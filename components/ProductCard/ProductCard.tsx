@@ -73,6 +73,11 @@ function ProductMedia({
   src?: string;
   className?: string;
   sizes: string;
+  /** The ticker's invisible sizing copies. They mount behind the intro
+   *  curtain, before a tile has carried anything onto the belt, which makes
+   *  them the page's preloader: every cover is fetched while the logo is still
+   *  drawing, so a tile that later picks up that product paints from cache
+   *  rather than the network. They still never play — fetched, not decoded. */
   still?: boolean;
   /** contain shows the whole frame; cover fills the box and crops. */
   fit?: "cover" | "contain";
@@ -99,7 +104,11 @@ function ProductMedia({
           loop
           muted
           playsInline
-          preload={still || reduce ? "none" : "metadata"}
+          // The sizing copy pulls the whole clip down during the intro so the
+          // belt never has to; the copy that plays then needs only metadata,
+          // since the bytes are already in cache. Reduced motion plays no clip
+          // at all, so it is never worth the bandwidth there.
+          preload={reduce ? "none" : still ? "auto" : "metadata"}
           aria-hidden="true"
           tabIndex={-1}
         />
@@ -110,6 +119,9 @@ function ProductMedia({
           alt={product.imageAlt ?? product.name}
           fill
           sizes={sizes}
+          // Eager on the sizing copies, so the covers are requested up front
+          // during the intro instead of waiting on the lazy loader.
+          priority={still}
           className={objectFit}
         />
       )}
