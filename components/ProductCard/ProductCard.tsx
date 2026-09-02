@@ -35,6 +35,9 @@ const TAG_CLASSES: Record<string, string> = {
 // so match the extension ahead of the query.
 const VIDEO_PATTERN = /\.(mp4|webm|mov)(\?|$)/i;
 
+// Equal shares of the drawer's foot on a phone, label-width from sm up.
+const FOOTER_BUTTON = "flex-1 sm:flex-none";
+
 // Mapped rather than interpolated, so a content file can never put arbitrary
 // CSS into a class name.
 const COVER_POSITIONS = {
@@ -211,7 +214,7 @@ export default function ProductCard({
             )}
           >
             <CardTitle>{product.name}</CardTitle>
-            <CardDescription className="min-h-10 min-[1280px]:min-h-0">{product.description}</CardDescription>
+            <CardDescription>{product.description}</CardDescription>
           </CardHeader>
         </Card>
       </SheetTrigger>
@@ -229,31 +232,40 @@ export default function ProductCard({
         // about closing a drawer should move the belt, so decline the restore.
         onCloseAutoFocus={(event) => event.preventDefault()}
         side="bottom"
-        className="mx-auto max-h-[80vh] w-full gap-0 overflow-y-auto rounded-2xl rounded-b-none border-0 p-0 shadow-2xl sm:max-w-3xl sm:rounded-b-2xl data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0 sm:data-[side=bottom]:inset-x-4 sm:data-[side=bottom]:bottom-4"
+        // The cap is a last resort, not the layout: everything inside sizes to
+        // its content so the copy is never the thing that scrolls.
+        className="mx-auto max-h-[90vh] w-full gap-0 overflow-y-auto rounded-2xl rounded-b-none border-0 p-0 shadow-2xl sm:max-w-3xl sm:rounded-b-2xl data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0 sm:data-[side=bottom]:inset-x-4 sm:data-[side=bottom]:bottom-4"
       >
-        {/* Fixed height from sm up so the drawer reads as a panel rather than
-            shrink-wrapping the copy; the media column stretches to fill it. */}
-        <div className="flex flex-col sm:h-[min(23.5rem,60vh)] sm:flex-row">
+        {/* A floor, not a height, from sm up: short copy still fills out to a
+            panel rather than shrink-wrapping, and long copy pushes past it
+            instead of being clipped into a scroller. The media column
+            stretches to whichever it turns out to be. */}
+        <div className="flex flex-col sm:min-h-[min(23.5rem,60vh)] sm:flex-row">
           <ProductMedia
             product={product}
             src={product.detailImage}
-            className="aspect-video w-full shrink-0 sm:aspect-auto sm:h-full sm:w-80"
+            // Square on a phone, where the media is a band across the top of
+            // the drawer; from sm up it becomes the column beside the copy and
+            // takes the drawer's height instead.
+            className="aspect-square w-full shrink-0 sm:aspect-auto sm:w-80 sm:self-stretch"
             sizes="(min-width: 640px) 20rem, 100vw"
           />
           <div className="flex min-w-0 flex-1 flex-col">
-            <SheetHeader className="min-h-0 flex-1 gap-2 overflow-y-auto p-6">
+            <SheetHeader className="flex-1 gap-2 p-6">
               <SheetTitle className="text-xl">{product.name}</SheetTitle>
               <SheetDescription>{product.details}</SheetDescription>
             </SheetHeader>
-            <SheetFooter className="flex-row flex-wrap items-center justify-end p-6 pt-0">
+            {/* On a phone the buttons take the width and split it between them;
+                from sm up they shrink back to their labels and sit right. */}
+            <SheetFooter className="flex-row items-center justify-end p-6 pt-0">
               {product.github ? (
                 <>
                   {/* Resolves the newest release asset server-side — see
                       app/api/download/[slug]/route.ts. */}
-                  <Button asChild>
+                  <Button asChild className={FOOTER_BUTTON}>
                     <a href={`/api/download/${product.id}`}>Download</a>
                   </Button>
-                  <Button asChild variant="outline">
+                  <Button asChild variant="outline" className={FOOTER_BUTTON}>
                     <a
                       href={`https://github.com/${product.github}`}
                       target="_blank"
@@ -264,7 +276,7 @@ export default function ProductCard({
                   </Button>
                 </>
               ) : (
-                <Button asChild>
+                <Button asChild className={FOOTER_BUTTON}>
                   <a href={product.url} target="_blank" rel="noreferrer">
                     Visit product
                   </a>
