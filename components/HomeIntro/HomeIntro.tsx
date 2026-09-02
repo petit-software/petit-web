@@ -83,18 +83,19 @@ export default function HomeIntro({ logoData, title, titleRotations, revealTitle
           />
         )}
       </AnimatePresence>
-      {/* Logo stays mounted permanently: centered at first, lifts 25vh, and
-          remains on screen after the curtain reveals the grid behind it.
+      {/* Logo stays mounted permanently: centered at first, lifts clear of
+          the ticker, and remains on screen after the curtain reveals the grid behind it.
           Once the ticker is visible, the logo undraws itself; once that
           finishes, a title reveals word-by-word in the exact same spot.
-          A phone gets half that lift: the ticker is a band at the foot rather
-          than half the screen, so the full 25vh leaves the title stranded
-          near the top instead of centred in the space above it. */}
+          Nowhere takes the whole 25vh: it leaves the title stranded near the
+          top of the space the ticker leaves rather than centred in it. Six
+          tenths of it from md up, half of it on a phone, where the band is
+          shorter still. */}
       <div
         className={cn(
           "pointer-events-none fixed inset-x-0 top-1/2 z-[60] flex justify-center transition-transform ease-[cubic-bezier(0.22,1,0.36,1)]",
           lifted
-            ? "-translate-y-[calc((50%+25vh)*0.5)] md:-translate-y-[calc(50%+25vh)]"
+            ? "-translate-y-[calc((50%+25vh)*0.5)] md:-translate-y-[calc((50%+25vh)*0.6)]"
             : "-translate-y-1/2",
         )}
         style={{ transitionDuration: `${LIFT_DURATION_MS}ms` }}
