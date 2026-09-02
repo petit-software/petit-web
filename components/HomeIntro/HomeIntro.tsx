@@ -102,8 +102,11 @@ export default function HomeIntro({ logoData, title, titleRotations, revealTitle
         <div className="relative">
           <LogoSvg
             data={logoData}
+            // The attributes are the intrinsic ratio; the class is the box, so
+            // the mark stops running edge to edge on a phone.
             width={368}
             height={155}
+            className="h-auto w-[min(72vw,368px)]"
             drawn={!showTitle}
             onUndrawComplete={handleUndrawComplete}
           />

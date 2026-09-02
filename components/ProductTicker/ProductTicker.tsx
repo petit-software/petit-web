@@ -18,8 +18,13 @@ import type { Product } from "@/lib/products";
 // The belt measures the rendered width rather than assuming it, so this class
 // is the only place size is decided: a vh term needs no matching arithmetic,
 // and a height-only resize still re-measures because the width changes with it.
+//
+// On a phone neither budget binds — 24vw is under 100px — so the clamp is only
+// ever its floor, and saying so plainly beats a clamp that never clamps. A tile
+// there is one screen bar a peek of the next, capped by vw so the narrowest
+// handsets don't get a tile wider than they are. From md up, unchanged.
 const TILE_CLASS =
-  "w-[clamp(280px,min(24vw,46vh),346px)] min-[1280px]:w-[min(480px,52vh)]";
+  "w-[min(330px,88vw)] md:w-[clamp(280px,min(24vw,46vh),346px)] min-[1280px]:w-[min(480px,52vh)]";
 // Mirrors the clamp's upper bound. Only used to taper the hover lift, so a
 // mismatch here softens an effect rather than breaking the belt's geometry —
 // unlike the tile width itself, which is measured rather than assumed.
