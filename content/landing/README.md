@@ -7,8 +7,6 @@ Every landing page is one Markdown file in this folder plus a slug entry in `lib
 
 Slugs in the registry are the only ones that build (`dynamicParams = false`), so the registry stays small — just a list of slugs.
 
-> **Working example.** [`social-media-automation.md`](./social-media-automation.md) in this folder uses every feature documented below. Copy it as a starting point.
-
 ---
 
 ## Quick start: make a new landing page
@@ -18,11 +16,10 @@ Pick a slug — lowercase, hyphenated, URL-safe (e.g. `inbox-zero-for-teams`). T
 1. **Register the slug** in `lib/landing-pages.ts`:
    ```ts
    export const landingSlugs = [
-     "social-media-automation",
      "inbox-zero-for-teams",   // ← add yours
    ] as const;
    ```
-2. **Create the markdown file** at `content/landing/inbox-zero-for-teams.md`. The fastest way is to copy `social-media-automation.md` and edit the frontmatter + body. See the [frontmatter contract](#required-frontmatter) below for the field list.
+2. **Create the markdown file** at `content/landing/inbox-zero-for-teams.md`. See the [frontmatter contract](#required-frontmatter) below for the field list.
 3. **Make the image folder** at `public/blog/inbox-zero-for-teams/` (the folder name MUST match the slug exactly). Add:
    - `og.png` — 1200×630 share image (required)
    - `hero.png` — the hero image referenced in `hero.image` (optional but recommended)

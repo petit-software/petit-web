@@ -3,7 +3,7 @@
  * `content/landing/<slug>.md` file. Per-page metadata (title, description,
  * OG image, AEO summary, FAQs) lives in the markdown frontmatter — not here.
  */
-export const landingSlugs = ["social-media-automation"] as const;
+export const landingSlugs = [] as const;
 
 export type LandingSlug = (typeof landingSlugs)[number];
 
