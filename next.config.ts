@@ -23,6 +23,13 @@ const nextConfig: NextConfig = {
   // max-age=0, so every clip is revalidated each time a tile picks it back up
   // and the intro's preloading buys nothing. Stills escape this by going
   // through /_next/image, which sets its own four-hour TTL.
+  // llms.txt asks for a clean markdown version of each page "at the same URL
+  // as the original page". A Next segment cannot be a dynamic param carrying a
+  // literal ".md" suffix, so the public URLs are rewritten onto a normal
+  // dynamic route. See app/markdown/[slug]/route.ts.
+  async rewrites() {
+    return [{ source: "/:slug([a-zA-Z0-9-]+).md", destination: "/markdown/:slug" }];
+  },
   async headers() {
     return [
       {

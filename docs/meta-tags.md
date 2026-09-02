@@ -18,6 +18,7 @@ SEO package in this project and there does not need to be one.
 | Crawl directives | `app/robots.ts` | `/robots.txt` |
 | URL inventory | `app/sitemap.ts` | `/sitemap.xml` |
 | Answer-engine index | `app/llms.txt/route.ts` | `/llms.txt` |
+| Markdown page versions | `app/markdown/[slug]/route.ts` + a rewrite in `next.config.ts` | `/index.md`, `/<slug>.md` |
 
 Two rules the layout depends on:
 
@@ -103,15 +104,31 @@ Ordered by payoff, none of them home-page work:
    one.
 2. **Search Console + Bing verification.** `metadata.verification.google` /
    `.other` once the properties exist.
-3. **Per-product pages.** `/products/<slug>` with `SoftwareApplication` schema
-   would roughly triple the site's answerable surface — every product's
-   long-form copy currently lives inside a drawer that only mounts on click, so
-   no crawler ever sees it.
+3. **Per-product pages.** `/products/<slug>` with `SoftwareApplication` schema.
+   Every product's long-form copy lives inside a drawer that only mounts on
+   click, so no crawler sees it in the HTML — `/index.md` is currently the only
+   place that copy is served, and a real page would do it properly.
 4. **An `<h1>` on the home page.** `TitleReveal` renders the headline as
    `<div>`s, so the strongest on-page signal a home page has is absent.
 5. **`dateModified` in `landingJsonLd()`** is `new Date()`, i.e. build time. It
    claims every page was modified on every deploy. Use the file's mtime or a
    frontmatter field.
+
+## llms.txt
+
+`/llms.txt` follows the <https://llmstxt.org/> format: an H1 name, a blockquote
+summary, prose sections carrying no headings, then H2 file lists whose entries
+are `[name](url): notes`, with `Optional` last for links an agent may skip.
+
+It is generated from the product folders and the landing registry, so a new
+product appears in it the same way it appears in the ticker. Entries for our own
+pages point at their markdown versions, which is the companion recommendation in
+that spec — "pages with information that agents might need provide a clean
+markdown version of those pages at the same URL as the original page".
+
+`/clarity` has no markdown version: its copy lives in TSX, and duplicating it
+into a second source would only rot. It gets one for free if it ever moves to
+the landing template.
 
 ## Checklist for a new page
 
@@ -129,7 +146,7 @@ Ordered by payoff, none of them home-page work:
 - Schema: <https://validator.schema.org/>
 - Unfurls: <https://www.linkedin.com/post-inspector/>, <https://cards-dev.twitter.com/validator>
 - The share card itself: `/opengraph-image.png`
-- Crawl surface: `/robots.txt`, `/sitemap.xml`, `/llms.txt`
+- Crawl surface: `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/index.md`
 
 `app/sitemap.ts` takes each `lastModified` from the mtime of the file that
 produces the page, so the field stays honest across deploys. Google ignores

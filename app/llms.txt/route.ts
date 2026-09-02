@@ -18,7 +18,10 @@ person does the same way every time — and turn it into software that runs
 itself, so a small team produces what a much larger one would. We build custom
 AI agents and automations for private clients and businesses of any size, we
 ship our own macOS tools, and we partner with founders on products of their
-own. Work is done from Zürich and remotely.`;
+own. Work is done from Zürich and remotely.
+
+Every page below is linked as its markdown version; drop the .md for the page
+itself. Reach the studio at ${SITE_EMAIL}.`;
 
 const absolute = (url: string) => (/^https?:\/\//.test(url) ? url : siteUrl(url));
 
@@ -34,7 +37,7 @@ export async function GET() {
       const content = await loadLandingContent(slug);
       if (!content) return undefined;
       const { seo, hero, aeo } = content.frontmatter;
-      return entry(seo.title ?? hero.title, `/${slug}`, aeo.summary ?? seo.description);
+      return entry(seo.title ?? hero.title, `/${slug}.md`, aeo.summary ?? seo.description);
     }),
   );
 
@@ -55,13 +58,11 @@ export async function GET() {
     [
       entry(
         "Petit",
-        "/",
-        "The studio's home page: who we are and the products we have shipped.",
+        "/index.md",
+        "The studio and every product it has shipped, in full.",
       ),
       ...landings.filter((line): line is string => Boolean(line)),
     ].join("\n"),
-    "## Contact",
-    entry("Email", `mailto:${SITE_EMAIL}`, "The fastest way to reach the studio."),
     "## Optional",
     entry(
       "GitHub",
