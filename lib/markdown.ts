@@ -64,6 +64,12 @@ export interface LoadedLanding {
 
 const CONTENT_ROOT = path.join(process.cwd(), "content", "landing");
 
+/** Absolute path to a landing page's source file. Exported so the sitemap can
+ *  stat it for a real `lastModified` instead of stamping the build time. */
+export function landingSourcePath(slug: string): string {
+  return path.join(CONTENT_ROOT, `${slug}.md`);
+}
+
 export const loadLandingContent = cache(
   async (slug: string): Promise<LoadedLanding | null> => {
     const filePath = path.join(CONTENT_ROOT, `${slug}.md`);

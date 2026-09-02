@@ -36,7 +36,7 @@ export default function SiteFooter() {
           </Link>
           <span aria-hidden="true">/</span>
           <a
-            href="mailto:hello@petit.com"
+            href="mailto:dev@petit.software"
             className="transition-colors hover:text-foreground"
           >
             Contact
