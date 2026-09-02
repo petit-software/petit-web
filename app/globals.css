@@ -170,9 +170,5 @@
     }
   html {
     @apply font-sans;
-    /* Reserve the scrollbar's width permanently so toggling overflow
-       (e.g. Radix Dialog's scroll-lock) never changes the viewport's
-       effective width and reflows fixed/100vw-relative elements. */
-    scrollbar-gutter: stable;
     }
 }
