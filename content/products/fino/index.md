@@ -2,7 +2,6 @@
 order: 4
 name: Fino
 description: Write better, anywhere.
-url: https://petit.example.com/fino
 tag: Experiment
 ---
 

@@ -256,33 +256,37 @@ export default function ProductCard({
               <SheetDescription>{product.details}</SheetDescription>
             </SheetHeader>
             {/* On a phone the buttons take the width and split it between them;
-                from sm up they shrink back to their labels and sit right. */}
-            <SheetFooter className="flex-row items-center justify-end p-6 pt-0">
-              {product.github ? (
-                <>
-                  {/* Resolves the newest release asset server-side — see
-                      app/api/download/[slug]/route.ts. */}
+                from sm up they shrink back to their labels and sit right. A
+                product with neither a repo nor a URL has nothing to link to,
+                so the footer is dropped rather than left as empty padding. */}
+            {(product.github || product.url) && (
+              <SheetFooter className="flex-row items-center justify-end p-6 pt-0">
+                {product.github ? (
+                  <>
+                    {/* Resolves the newest release asset server-side — see
+                        app/api/download/[slug]/route.ts. */}
+                    <Button asChild className={FOOTER_BUTTON}>
+                      <a href={`/api/download/${product.id}`}>Download</a>
+                    </Button>
+                    <Button asChild variant="outline" className={FOOTER_BUTTON}>
+                      <a
+                        href={`https://github.com/${product.github}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        GitHub
+                      </a>
+                    </Button>
+                  </>
+                ) : (
                   <Button asChild className={FOOTER_BUTTON}>
-                    <a href={`/api/download/${product.id}`}>Download</a>
-                  </Button>
-                  <Button asChild variant="outline" className={FOOTER_BUTTON}>
-                    <a
-                      href={`https://github.com/${product.github}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      GitHub
+                    <a href={product.url} target="_blank" rel="noreferrer">
+                      Visit product
                     </a>
                   </Button>
-                </>
-              ) : (
-                <Button asChild className={FOOTER_BUTTON}>
-                  <a href={product.url} target="_blank" rel="noreferrer">
-                    Visit product
-                  </a>
-                </Button>
-              )}
-            </SheetFooter>
+                )}
+              </SheetFooter>
+            )}
           </div>
         </div>
       </SheetContent>

@@ -9,7 +9,9 @@ export interface Product {
   description: string;
   /** Long-form text shown in the product modal (markdown body of the content file). */
   details: string;
-  url: string;
+  /** Where the product's button points. Optional: a product that has nothing
+   *  to link to yet simply gets no button in its drawer. */
+  url?: string;
   /** Public URL for the folder's cover.<ext> file, if one exists. Falls back to a color block when omitted. */
   image?: string;
   /** Public URL for the folder's detail.<ext> file — the wider image shown in the drawer.
@@ -97,7 +99,7 @@ export function getProducts(): Product[] {
     const filePath = path.join(dir, "index.md");
     const { data, content } = matter(fs.readFileSync(filePath, "utf-8"));
 
-    for (const field of ["name", "description", "url"] as const) {
+    for (const field of ["name", "description"] as const) {
       if (!data[field]) {
         throw new Error(`content/products/${id}/index.md is missing required frontmatter field "${field}"`);
       }

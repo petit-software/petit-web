@@ -75,7 +75,7 @@ Only slugs in the registry are built (`dynamicParams = false`).
 
 Products (the tiles in the home page's `ProductTicker`) are auto-discovered — there's no registry to edit.
 
-1. Create `content/products/<slug>/index.md` with frontmatter `name`, `description`, `url` (all required), and optional `imageAlt`. Body markdown becomes the long-form text shown in the product's modal.
+1. Create `content/products/<slug>/index.md` with frontmatter `name` and `description` (both required), plus optional `url` and `imageAlt`. `url` is where the drawer's "Visit product" button points — omit it and the drawer shows no button at all, which is what a product with nothing to link to yet wants. Body markdown becomes the long-form text shown in the product's modal.
 2. Name the tile media `cover.<ext>` (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg`, or `.avif`) and drop it directly in that same folder — no frontmatter field needed, `lib/products.ts` auto-detects it by filename, copies it to `public/products/<slug>/`, and rewrites the path. Don't add images to `public/` by hand.
 3. Either file may be a short video instead of a still — `cover.mp4` / `detail.webm` / `.mov` are picked up the same way, and render as a muted, looping, `playsInline` clip. The ticker's invisible sizing copy and viewers with `prefers-reduced-motion` get `preload="none"` and no autoplay.
 4. Optionally add `detail.<ext>` alongside it — the wider image shown in the drawer. Same auto-detection; falls back to `cover.<ext>` when absent. Use it when the tile wants a square icon but the drawer wants a full-bleed shot.
