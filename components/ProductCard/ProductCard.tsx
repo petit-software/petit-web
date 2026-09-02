@@ -145,7 +145,7 @@ export default function ProductCard({
   // the slack; left to itself it holds 16:9 until the tile turns square.
   const mediaBox = fill
     ? "min-h-0 flex-1"
-    : "aspect-video min-[1280px]:aspect-auto min-[1280px]:min-h-0 min-[1280px]:flex-1";
+    : "aspect-video xl:aspect-auto xl:min-h-0 xl:flex-1";
 
   // modal={false}: skip Radix's body scroll-lock (react-remove-scroll). The
   // ticker already runs its own wheel-interception to drive the belt;
@@ -162,7 +162,7 @@ export default function ProductCard({
       >
         <Card
           className={cn(
-            "relative isolate cursor-pointer gap-0 rounded-[24px] bg-transparent p-0 ring-1 ring-border/50 [corner-shape:superellipse(1.1)] min-[1280px]:aspect-square",
+            "relative isolate cursor-pointer gap-0 rounded-[24px] bg-transparent p-0 ring-1 ring-border/50 [corner-shape:superellipse(1.1)] xl:aspect-square",
             fill && "h-full",
           )}
         >
@@ -238,16 +238,19 @@ export default function ProductCard({
       >
         {/* A floor, not a height, from sm up: short copy still fills out to a
             panel rather than shrink-wrapping, and long copy pushes past it
-            instead of being clipped into a scroller. The media column
-            stretches to whichever it turns out to be. */}
-        <div className="flex flex-col sm:min-h-[min(23.5rem,60vh)] sm:flex-row">
+            instead of being clipped into a scroller. The floor is the media's
+            own size, so a short entry comes out as a square beside a panel of
+            matching height rather than a square with a gap under it. */}
+        <div className="flex flex-col sm:min-h-[min(20rem,60vh)] sm:flex-row">
           <ProductMedia
             product={product}
             src={product.detailImage}
-            // Square on a phone, where the media is a band across the top of
-            // the drawer; from sm up it becomes the column beside the copy and
-            // takes the drawer's height instead.
-            className="aspect-square w-full shrink-0 sm:aspect-auto sm:w-80 sm:self-stretch"
+            // Square at every width. On a phone that is a band across the top
+            // of the drawer; from sm up it is a fixed 20rem box beside the
+            // copy. The explicit height is what holds the ratio there — left
+            // to stretch, the flex row would set the height from the copy
+            // column and the aspect ratio would never apply.
+            className="aspect-square w-full shrink-0 sm:size-80"
             sizes="(min-width: 640px) 20rem, 100vw"
           />
           <div className="flex min-w-0 flex-1 flex-col">

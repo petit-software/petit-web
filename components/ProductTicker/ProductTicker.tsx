@@ -24,9 +24,17 @@ import type { Product } from "@/lib/products";
 // ever its floor, and saying so plainly beats a clamp that never clamps. A tile
 // there is one screen bar a peek of the next, capped by vw so the narrowest
 // handsets don't get a tile wider than they are. From md up, unchanged.
+//
+// The large-screen rule is `xl:`, not `min-[1280px]:`, though the two are the
+// same 1280px. Tailwind emits arbitrary min-width variants ahead of the named
+// breakpoints, so `min-[1280px]:w-…` landed earlier in the stylesheet than
+// `md:w-…`; both match above 1280px, they carry equal specificity, and the
+// later rule won. The desktop width never applied — every wide screen was
+// getting the md clamp's 346px ceiling. A named breakpoint sorts after md and
+// wins, which is what this always meant to do.
 const TILE_CLASS =
-  "w-[min(330px,88vw)] md:w-[clamp(280px,min(24vw,46vh),346px)] min-[1280px]:w-[min(480px,52vh)]";
-// Mirrors the clamp's upper bound. Only used to taper the hover lift, so a
+  "w-[min(330px,88vw)] md:w-[clamp(280px,min(24vw,46vh),346px)] xl:w-[min(480px,52vh)]";
+// Mirrors the pixel bound above. Only used to taper the hover lift, so a
 // mismatch here softens an effect rather than breaking the belt's geometry —
 // unlike the tile width itself, which is measured rather than assumed.
 const TILE_WIDTH_MAX = 480;
