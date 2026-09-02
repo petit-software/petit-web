@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useReducedMotion } from "framer-motion";
 import CtaTile from "@/components/CtaTile";
 import ProductCard from "@/components/ProductCard";
@@ -345,6 +346,12 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
   // and hoveredKey stuck. anyOpen forces both back to their neutral state
   // regardless, rather than depending on the stuck hover signal.
   const anyOpen = openId != null;
+  // The backdrop goes to the body rather than into the tree here: every tile on
+  // the belt carries a transform, and a fixed element inside one would position
+  // against the tile instead of the viewport. Mounted from the first effect so
+  // it can fade both ways rather than popping in and out with the drawer.
+  const [bodyReady, setBodyReady] = useState(false);
+  useEffect(() => setBodyReady(true), []);
   const anyOpenRef = useRef(false);
   useEffect(() => {
     anyOpenRef.current = anyOpen;
@@ -668,6 +675,23 @@ export default function ProductTicker({ products, revealed = false }: ProductTic
         pausedRef.current = false;
       }}
     >
+      {/* The drawer is deliberately non-modal — Radix's scroll lock fights the
+          belt's own wheel handling — and Radix draws no overlay for a non-modal
+          dialog, so the backdrop is ours. Only on a phone, where the drawer
+          covers most of the screen and the belt drifting brightly behind it
+          pulls the eye; a pointer needs no such help. Under the drawer's z-50,
+          over everything else, and inert while closed so it never eats a tap. */}
+      {bodyReady &&
+        createPortal(
+          <div
+            aria-hidden="true"
+            className={cn(
+              "fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 md:hidden",
+              anyOpen ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          />,
+          document.body,
+        )}
       {/* Sizer: not part of the animated belt, just establishes the band's
           height from the tallest product tile so nothing gets clipped. */}
       <div ref={bandRef} className="invisible grid" aria-hidden="true" inert>
