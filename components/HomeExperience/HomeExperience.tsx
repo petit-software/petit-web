@@ -7,7 +7,9 @@ import HomeIntro from "@/components/HomeIntro";
 import type { LogoSvgData } from "@/components/Logo/parseLogo";
 import type { Product } from "@/lib/products";
 
-const TITLE = "A boutique AI studio. Zürich + remote.";
+// The newline breaks the line after "studio." on mobile; from md up the two
+// halves sit on one line again. See TitleReveal.
+const TITLE = "A boutique AI studio.\nZürich + remote.";
 const TITLE_ROTATIONS = [
   "We build AI agents that pay for themselves.",
   "We foster growth with a use of dedicated AI automations.",
