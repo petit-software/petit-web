@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, type Transition } from "framer-motion";
 import { INTRO_HOLD_MS } from "@/components/HomeIntro";
 import ProductTicker from "@/components/ProductTicker";
@@ -20,10 +20,14 @@ const slideTransition: Transition = {
 interface HomeGridProps {
   products: Product[];
   onTickerVisible?: () => void;
+  /** Reports where the belt's top edge sits, in px from the top of the page,
+   *  whenever the viewport or the belt changes size. */
+  onBeltTopChange?: (top: number) => void;
 }
 
-export default function HomeGrid({ products, onTickerVisible }: HomeGridProps) {
+export default function HomeGrid({ products, onTickerVisible, onBeltTopChange }: HomeGridProps) {
   const reduce = useReducedMotion();
+  const spacerRef = useRef<HTMLElement>(null);
   // Single source of truth for "the ticker is on screen" — both the title
   // reveal (via onTickerVisible, lifted to HomeExperience) and the ticker's
   // own tile entrance react to this same event, so they land in the same
@@ -48,9 +52,23 @@ export default function HomeGrid({ products, onTickerVisible }: HomeGridProps) {
     return () => window.clearTimeout(timer);
   }, [reduce, onTickerVisible]);
 
+  // The spacer is the free band above the belt, so its bottom edge is the
+  // belt's top edge — and it resizes whenever the viewport or the belt does,
+  // which makes one observer enough. Offsets rather than a rect, so the
+  // entrance slide's transform doesn't leak into the measurement.
+  useEffect(() => {
+    const spacer = spacerRef.current;
+    if (!spacer || !onBeltTopChange) return;
+    const report = () => onBeltTopChange(spacer.offsetTop + spacer.offsetHeight);
+    const observer = new ResizeObserver(report);
+    observer.observe(spacer);
+    return () => observer.disconnect();
+  }, [onBeltTopChange]);
+
   return (
     <main className="flex min-h-dvh flex-col overflow-x-clip bg-card md:h-dvh md:overflow-hidden">
       <motion.section
+        ref={spacerRef}
         className="flex-1 bg-card"
         initial={reduce ? false : { y: -32, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

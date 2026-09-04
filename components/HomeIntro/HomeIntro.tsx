@@ -5,13 +5,12 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import LogoSvg from "@/components/Logo/LogoSvg";
 import type { LogoSvgData } from "@/components/Logo/parseLogo";
 import TitleReveal from "@/components/TitleReveal";
-import { cn } from "@/lib/utils";
 
 // Logo draw completes ~2.15s in (4 lines, last starts at 0.55s + 1.6s duration).
-// It then lifts 25% of the viewport height. The curtain starts fading right
-// as the lift finishes, and the grid behind it slides in over the same
-// window (see HomeGrid's slideTransition) so the section is on screen the
-// moment the logo settles at the top instead of waiting on a separate hold.
+// It then lifts to the middle of the band above the belt. The curtain starts
+// fading right as the lift finishes, and the grid behind it slides in over
+// the same window (see HomeGrid's slideTransition) so the section is on
+// screen the moment the logo settles instead of waiting on a separate hold.
 const DRAW_COMPLETE_MS = 2150;
 const LIFT_DURATION_MS = 500;
 const UNDRAW_FALLBACK_MS = 2000;
@@ -26,9 +25,19 @@ interface HomeIntroProps {
   /** Second title line, cycled on a loop under the static one. */
   titleRotations: string[];
   revealTitle: boolean;
+  /** Where the hero settles once lifted, in px below the viewport's centre
+   *  (negative lifts it above). Null until the page has been measured, which
+   *  holds the hero at rest rather than sending it somewhere guessed. */
+  lift: number | null;
 }
 
-export default function HomeIntro({ logoData, title, titleRotations, revealTitle }: HomeIntroProps) {
+export default function HomeIntro({
+  logoData,
+  title,
+  titleRotations,
+  revealTitle,
+  lift,
+}: HomeIntroProps) {
   const reduce = useReducedMotion();
   const [curtainVisible, setCurtainVisible] = useState(true);
   const [lifted, setLifted] = useState(false);
@@ -87,18 +96,18 @@ export default function HomeIntro({ logoData, title, titleRotations, revealTitle
           the ticker, and remains on screen after the curtain reveals the grid behind it.
           Once the ticker is visible, the logo undraws itself; once that
           finishes, a title reveals word-by-word in the exact same spot.
-          Nowhere takes the whole 25vh: it leaves the title stranded near the
-          top of the space the ticker leaves rather than centred in it. Six
-          tenths of it from md up, half of it on a phone, where the band is
-          shorter still. */}
+          The lift is a measured distance, not a fraction of the viewport: it
+          puts the hero's centre on the midpoint between the header and the
+          belt at whatever size the page happens to be. The -50% keeps the
+          hero's own centre, not its top edge, on that point. Written as
+          `translate` because that is the property Tailwind's translate
+          utilities and transition-transform speak. */}
       <div
-        className={cn(
-          "pointer-events-none fixed inset-x-0 top-1/2 z-[60] flex justify-center transition-transform ease-[cubic-bezier(0.22,1,0.36,1)]",
-          lifted
-            ? "-translate-y-[calc((50%+25vh)*0.5)] md:-translate-y-[calc((50%+25vh)*0.6)]"
-            : "-translate-y-1/2",
-        )}
-        style={{ transitionDuration: `${LIFT_DURATION_MS}ms` }}
+        className="pointer-events-none fixed inset-x-0 top-1/2 z-[60] flex justify-center transition-transform ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{
+          translate: `0 calc(${lifted && lift !== null ? lift : 0}px - 50%)`,
+          transitionDuration: reduce ? "0ms" : `${LIFT_DURATION_MS}ms`,
+        }}
       >
         <div className="relative">
           <LogoSvg
