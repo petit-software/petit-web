@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import CustomCursor from "@/components/CustomCursor";
 import HomeGrid from "@/components/HomeGrid";
 import LandingHeader from "@/components/LandingHeader";
 import HomeIntro from "@/components/HomeIntro";
@@ -87,6 +88,9 @@ export default function HomeExperience({ products, logoData }: HomeExperiencePro
         onTickerVisible={handleTickerVisible}
         onBeltTopChange={setBeltTop}
       />
+      {/* Follows a mouse over the belt's product tiles; see the component
+          for what it keys off. */}
+      <CustomCursor />
     </>
   );
 }

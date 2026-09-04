@@ -154,9 +154,13 @@ export default function ProductCard({
   // no native scroll to lock anyway (md:overflow-hidden).
   return (
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
+      {/* data-cursor hands the tile to CustomCursor on a mouse, and the
+          native arrow steps aside on that same media query — a phone keeps
+          its cursor-less tap, and a mouse never shows two cursors. */}
       <SheetTrigger
+        data-cursor="Open"
         className={cn(
-          "w-full rounded-[24px] text-left outline-none [corner-shape:superellipse(1.1)] focus-visible:ring-2 focus-visible:ring-ring",
+          "w-full rounded-[24px] text-left outline-none [corner-shape:superellipse(1.1)] focus-visible:ring-2 focus-visible:ring-ring pointer-fine:cursor-none",
           fill && "h-full",
         )}
       >
