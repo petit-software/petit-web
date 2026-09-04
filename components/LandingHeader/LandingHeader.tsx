@@ -1,3 +1,4 @@
+import Link from "next/link";
 import HeroMark from "@/components/HeroMark";
 import LogoWordmark from "@/components/LogoWordmark";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,18 @@ export default function LandingHeader({
       {/* Three columns rather than justify-between, so the mark stays truly
           centred instead of being pushed off centre by the button's width. */}
       <div className="grid w-full grid-cols-3 items-center px-4 py-4">
-        <span className={cn("inline-flex justify-self-start", arrival)}>
+        {/* The wordmark is the way home from anywhere; the mark beside it
+            stays a mark. */}
+        <Link
+          href="/"
+          aria-label="Petit home"
+          className={cn(
+            "inline-flex justify-self-start rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            arrival,
+          )}
+        >
           <LogoWordmark height={22} />
-        </span>
+        </Link>
         {showLogo ? (
           // Deliberately not a link: it is a mark, not navigation.
           <span className="inline-flex justify-self-center">
