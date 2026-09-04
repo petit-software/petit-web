@@ -233,8 +233,11 @@ export default function ProductCard({
         onCloseAutoFocus={(event) => event.preventDefault()}
         side="bottom"
         // The cap is a last resort, not the layout: everything inside sizes to
-        // its content so the copy is never the thing that scrolls.
-        className="mx-auto max-h-[90vh] w-full gap-0 overflow-y-auto rounded-2xl rounded-b-none border-0 p-0 shadow-2xl sm:max-w-3xl sm:rounded-b-2xl data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0 sm:data-[side=bottom]:inset-x-4 sm:data-[side=bottom]:bottom-4"
+        // its content so the copy is never the thing that scrolls. When the cap
+        // does bite, the whole panel scrolls as one — media, copy and buttons
+        // together — and the scroll stays inside it rather than chaining to
+        // the page. dvh, so a phone's toolbars count against the cap.
+        className="mx-auto max-h-[90dvh] w-full gap-0 overflow-y-auto overscroll-contain rounded-2xl rounded-b-none border-0 p-0 shadow-2xl sm:max-w-3xl sm:rounded-b-2xl data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t-0 sm:data-[side=bottom]:inset-x-4 sm:data-[side=bottom]:bottom-4"
       >
         {/* A floor, not a height, from sm up: short copy still fills out to a
             panel rather than shrink-wrapping, and long copy pushes past it
@@ -245,12 +248,14 @@ export default function ProductCard({
           <ProductMedia
             product={product}
             src={product.detailImage}
-            // Square at every width. On a phone that is a band across the top
-            // of the drawer; from sm up it is a fixed 20rem box beside the
-            // copy. The explicit height is what holds the ratio there — left
-            // to stretch, the flex row would set the height from the copy
-            // column and the aspect ratio would never apply.
-            className="aspect-square w-full shrink-0 sm:size-80"
+            // On a phone a band across the top of the drawer, half the
+            // viewport tall, so the image and the start of the copy share the
+            // first screen and the rest is a scroll away. From sm up it is a
+            // fixed 20rem square beside the copy; the explicit height is what
+            // holds the square there — left to stretch, the flex row would set
+            // it from the copy column. shrink-0 keeps the scrolling panel from
+            // squeezing it to make room.
+            className="h-[50dvh] w-full shrink-0 sm:size-80"
             sizes="(min-width: 640px) 20rem, 100vw"
           />
           <div className="flex min-w-0 flex-1 flex-col">
