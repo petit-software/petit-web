@@ -19,8 +19,11 @@ import type { Service } from "@/lib/services";
 // the first entry again.
 const TILTS_DEG = [-7, 5, -3, 8, -5];
 const DRIFTS_PX = [12, -14, 6, -10, 16];
-// How far up the picked card rises, clear of the drawer that opens under it.
-const PICK_RISE_PX = 80;
+// The picked card grows by this much, and drops by this much on top of what
+// keeps its head where it was: the space it takes comes out of the foot,
+// behind the drawer, never out of the gap under the title's line.
+const PICK_SCALE = 1.3;
+const PICK_DROP_PX = 16;
 // The deal starts this far below the bottom edge of the viewport.
 const DEAL_FROM_BELOW_PX = 40;
 const DEAL_STAGGER_S = 0.1;
@@ -38,10 +41,11 @@ export default function ServiceHand({ services }: ServiceHandProps) {
   // The drawer keeps showing the last card through its close animation,
   // rather than going blank the moment the selection clears.
   const [shown, setShown] = useState<Service | null>(null);
-  // How far the picked card has to slide to sit in the middle of the row,
-  // measured when it is picked: the overlap differs per breakpoint, and a
-  // measurement is truer than a second copy of the layout's arithmetic.
-  const [slide, setSlide] = useState(0);
+  // Where the picked card goes, measured when it is picked: across to the
+  // middle of the row, and down by what its growth would otherwise add above
+  // its head. The overlap and the card's size both differ per breakpoint,
+  // and a measurement is truer than a second copy of the layout's arithmetic.
+  const [pickAt, setPickAt] = useState({ x: 0, y: 0 });
 
   // Where the deal starts: every card stacked in the middle of the row, just
   // under the bottom edge of the viewport, before flying out to its place.
@@ -73,9 +77,13 @@ export default function ServiceHand({ services }: ServiceHandProps) {
   const pick = (index: number, card: HTMLElement) => {
     const row = card.parentElement?.getBoundingClientRect();
     const box = card.getBoundingClientRect();
-    // Scale and tilt are both about the card's centre, so the centre is
-    // honest even mid-hover.
-    setSlide(row ? row.left + row.width / 2 - (box.left + box.width / 2) : 0);
+    setPickAt({
+      // Scale and tilt are both about the card's centre, so the centre is
+      // honest even mid-hover.
+      x: row ? row.left + row.width / 2 - (box.left + box.width / 2) : 0,
+      // offsetHeight is the laid-out height, untouched by the hover's scale.
+      y: ((PICK_SCALE - 1) / 2) * card.offsetHeight + PICK_DROP_PX,
+    });
     setSelected(index);
     setShown(services[index]);
   };
@@ -117,7 +125,7 @@ export default function ServiceHand({ services }: ServiceHandProps) {
                 entering
                   ? { x: [deal.xs[index], 0], y: [deal.y, rest], opacity: 1, rotate: [0, rotate], scale: 1 }
                   : isSelected
-                    ? { x: slide, y: -PICK_RISE_PX, opacity: 1, rotate: 0, scale: 1.14 }
+                    ? { x: pickAt.x, y: pickAt.y, opacity: 1, rotate: 0, scale: PICK_SCALE }
                     : anyPicked
                       ? { x: 0, y: rest + 24, opacity: 0, rotate, scale: 0.92 }
                       : { x: 0, y: rest, opacity: 1, rotate, scale: 1 }
