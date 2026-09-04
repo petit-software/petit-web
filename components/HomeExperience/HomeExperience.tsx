@@ -1,21 +1,20 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import HomeGrid from "@/components/HomeGrid";
 import LandingHeader from "@/components/LandingHeader";
 import HomeIntro from "@/components/HomeIntro";
 import type { LogoSvgData } from "@/components/Logo/parseLogo";
 import type { Product } from "@/lib/products";
 
-// The newline breaks the line after "studio." on mobile; from md up the two
-// halves sit on one line again. See TitleReveal.
-const TITLE = "A boutique AI studio.\nZürich + remote.";
+const TITLE = "A boutique AI studio. Zürich + remote.";
 const TITLE_ROTATIONS = [
   "We build AI agents that pay for themselves.",
   "We foster growth with a use of dedicated AI automations.",
   "We build AI solution for private and business of any size.",
   "We give small teams the output of a much larger one.",
   "We turn the repetitive work into software that runs itself.",
+  "Enable your team to build internal AI tools, safely and responsibly.",
 ];
 
 interface HomeExperienceProps {
