@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   motion,
   useMotionValue,
@@ -16,7 +17,6 @@ export default function ClarityPreview() {
   const y = useSpring(pointerY, { stiffness: 120, damping: 18, mass: 0.7 });
   const rotateX = useTransform(y, [-12, 12], [2.5, -2.5]);
   const rotateY = useTransform(x, [-12, 12], [-3, 3]);
-  const shadowX = useTransform(x, [-12, 12], [-8, 8]);
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
     if (reduceMotion || event.pointerType === "touch") return;
@@ -35,32 +35,28 @@ export default function ClarityPreview() {
 
   return (
     <div
-      className="flex min-h-[32rem] w-full items-center justify-center overflow-hidden px-6 py-12 sm:min-h-[40rem] lg:min-h-0"
+      className="flex w-full items-center justify-center px-6 pt-16 pb-4 lg:overflow-hidden lg:py-12"
       onPointerMove={handlePointerMove}
       onPointerLeave={resetPosition}
       style={{ perspective: 1000 }}
-      aria-label="Clarity app preview coming soon"
     >
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-          style={{ x, y, rotateX, rotateY, transformStyle: "preserve-3d" }}
-          className="relative aspect-[9/19] w-[15.5rem] rounded-[2.9rem] border bg-background shadow-2xl sm:w-[18rem]"
-        >
-          <span
-            aria-hidden="true"
-            className="absolute top-3 left-1/2 h-1.5 w-16 -translate-x-1/2 rounded-full bg-foreground/10"
-          />
-        </motion.div>
-
-        <motion.div
-          aria-hidden="true"
-          style={{ x: shadowX }}
-          className="mt-8 h-4 w-44 rounded-full bg-foreground/10 blur-xl sm:w-52"
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+        style={{ x, y, rotateX, rotateY, transformStyle: "preserve-3d" }}
+        className="w-full max-w-[16rem] sm:max-w-[20rem] lg:max-w-[22rem]"
+      >
+        <Image
+          src="/images/clarity-preview.png"
+          alt="Clarity on an iPhone: a welcome screen with saved guidance cards and a voice note being turned into guidance"
+          width={1121}
+          height={2007}
+          priority
+          sizes="(min-width: 1024px) 22rem, (min-width: 640px) 20rem, 16rem"
+          className="h-auto w-full drop-shadow-2xl"
         />
-      </div>
+      </motion.div>
     </div>
   );
 }

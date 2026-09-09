@@ -25,10 +25,10 @@ export default function ClarityPage() {
                 className="rounded-[14px] outline-[0.5px] outline-black/10 outline-offset-[-0.5px] [corner-shape:superellipse(1.25)]"
               />
               <p className="text-sm font-medium text-muted-foreground">Clarity for clinicians</p>
-              <h1 className="max-w-lg text-5xl leading-[0.96] font-medium tracking-[-0.045em] text-balance sm:text-6xl lg:text-7xl">
+              <h1 className="max-w-lg text-[2.5rem] leading-[0.96] font-medium tracking-[-0.045em] text-balance sm:text-6xl lg:text-7xl">
                 Make sensitive conversations a little easier.
               </h1>
-              <p className="max-w-md text-lg leading-relaxed text-muted-foreground sm:text-xl">
+              <p className="text-base leading-relaxed text-muted-foreground sm:max-w-md sm:text-xl">
                 Helpful resources, thoughtful language, and conversation starters for clinicians supporting people through intimacy and cancer.
               </p>
             </div>
@@ -39,7 +39,7 @@ export default function ClarityPage() {
           </div>
         </div>
 
-        <div className="flex items-stretch justify-center">
+        <div className="order-first flex items-stretch justify-center lg:order-none">
           <ClarityPreview />
         </div>
       </section>
