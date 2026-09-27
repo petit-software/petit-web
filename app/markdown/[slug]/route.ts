@@ -2,6 +2,7 @@ import { getLandingSlugs, isLandingSlug } from "@/lib/landing-pages";
 import { loadLandingContent, resolveImagePath } from "@/lib/markdown";
 import { SITE_DESCRIPTION, SITE_EMAIL, SITE_NAME, siteUrl } from "@/lib/metadata";
 import { getProducts } from "@/lib/products";
+import { loadCmraContent } from "@/lib/cmra";
 
 export const dynamic = "force-static";
 export const dynamicParams = false;
@@ -18,7 +19,7 @@ export const dynamicParams = false;
 const HOME = "index";
 
 export function generateStaticParams() {
-  return [{ slug: HOME }, ...getLandingSlugs().map((slug) => ({ slug }))];
+  return [{ slug: HOME }, { slug: "cmra" }, ...getLandingSlugs().map((slug) => ({ slug }))];
 }
 
 const markdown = (body: string) =>
@@ -91,6 +92,16 @@ export async function GET(
   const { slug } = await params;
 
   if (slug === HOME) return markdown(`${homeMarkdown()}\n`);
+  if (slug === "cmra") {
+    const content = await loadCmraContent("index");
+    return markdown([
+      `# ${content.title}`,
+      `> ${content.description}`,
+      `Canonical page: ${siteUrl("/cmra")}`,
+      content.body.trim(),
+      `## Support\n\n[Get help with CMRA](${siteUrl("/cmra/support")}) or email [dev@petit.software](mailto:dev@petit.software).`,
+    ].join("\n\n") + "\n");
+  }
   if (!isLandingSlug(slug)) return new Response("Not found", { status: 404 });
 
   const body = await landingMarkdown(slug);

@@ -36,7 +36,10 @@ export async function cmraMetadata(page: CmraPage): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      ...(page === "index" ? { types: { "text/markdown": siteUrl("/cmra.md") } } : {}),
+    },
     openGraph: { title, description, url, type: "website" },
     twitter: { card: "summary_large_image", title, description },
     ...(draft ? { robots: { index: false, follow: true } } : {}),

@@ -20,7 +20,7 @@ AI agents and automations for private clients and businesses of any size, we
 ship our own macOS tools, and we partner with founders on products of their
 own. Work is done from Zürich and remotely.
 
-Every page below is linked as its markdown version; drop the .md for the page
+Links ending in .md provide markdown versions; drop the .md for the page
 itself. Reach the studio at ${SITE_EMAIL}.`;
 
 const absolute = (url: string) => (/^https?:\/\//.test(url) ? url : siteUrl(url));
@@ -61,6 +61,8 @@ export async function GET() {
         "/index.md",
         "The studio and every product it has shipped, in full.",
       ),
+      entry("CMRA", "/cmra.md", "A minimalistic camera for real photos, for iPhone."),
+      entry("CMRA LLM overview", "/cmra/llms.txt", "Product information and support links for CMRA."),
       ...landings.filter((line): line is string => Boolean(line)),
     ].join("\n"),
     "## Optional",

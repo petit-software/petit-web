@@ -31,6 +31,8 @@ The legacy `npm run lint` script uses `next lint`, which is unavailable in Next.
 
 Edit `index.md` for landing-page metadata or `privacy.md` for policy content. Keep the `title` and `description` frontmatter, and include one `#` heading in the privacy policy body. The privacy policy contains the supplied draft, including its unresolved `TK` notes. Finalize the Markdown and remove `draft: true` when ready. Draft pages remain accessible but request no indexing and are excluded from the sitemap. Markdown changes take effect on the next build/deployment.
 
+CMRA also provides `/cmra/llms.txt` and `/cmra.md` for LLM-readable product information, generated from `content/cmra/index.md`. The main `/llms.txt` links to both. Keep that Markdown overview current when the product description or App Store availability changes.
+
 ## Deployment
 
 The repository is configured for Netlify in `netlify.toml`: build command `npm run build`, publish directory `.next`, and the Next.js adapter `@netlify/plugin-nextjs`. The build also copies product media into `public/products/` through `prebuild`. API routes and image optimization need the Next.js runtime; this is not a static HTML export.

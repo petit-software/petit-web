@@ -3,17 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import LogoWordmark from "@/components/LogoWordmark";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function CmraLayout({ children }: { children: React.ReactNode }) {
   const isLanding = usePathname() === "/cmra";
 
   return (
-    <div className={`flex min-h-svh flex-col ${isLanding ? "bg-white text-neutral-950" : ""}`}>
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="grid w-full grid-cols-3 items-center px-6 py-6">
-        <Link href="/" aria-label="Petit home" className="justify-self-start rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4">
-          <LogoWordmark height={22} />
+        <Link href="/cmra" aria-label="CMRA home" className="justify-self-start rounded-sm text-sm font-semibold tracking-wide focus-visible:outline-2 focus-visible:outline-offset-4">
+          CMRA APP
         </Link>
         <Link href="/cmra" aria-label="CMRA home" className="justify-self-center rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4">
           <Image

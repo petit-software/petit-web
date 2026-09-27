@@ -33,6 +33,13 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/cmra",
+        headers: [{
+          key: "Link",
+          value: '</cmra.md>; rel="alternate"; type="text/markdown", </cmra/llms.txt>; rel="describedby"',
+        }],
+      },
+      {
         source: "/products/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
