@@ -27,7 +27,7 @@ The legacy `npm run lint` script uses `next lint`, which is unavailable in Next.
 
 ## CMRA pages
 
-`/cmra` links to `/cmra/privacy`. The landing page displays a full-page background image; its metadata comes from `content/cmra/index.md`. The privacy page renders `content/cmra/privacy.md` using the existing Markdown renderer. The dedicated routes live in `app/cmra/`; `lib/cmra.ts` loads content and generates metadata. No landing-page registry entry is needed.
+`/cmra` links to `/cmra/privacy` and `/cmra/support`. The landing page displays a full-page background image; its metadata comes from `content/cmra/index.md`. The privacy page renders `content/cmra/privacy.md` using the existing Markdown renderer. The support page displays centered help text and an email button linking to `dev@petit.software`. The dedicated routes live in `app/cmra/`; `lib/cmra.ts` loads content and generates metadata. No landing-page registry entry is needed.
 
 Edit `index.md` for landing-page metadata or `privacy.md` for policy content. Keep the `title` and `description` frontmatter, and include one `#` heading in the privacy policy body. The privacy policy contains the supplied draft, including its unresolved `TK` notes. Finalize the Markdown and remove `draft: true` when ready. Draft pages remain accessible but request no indexing and are excluded from the sitemap. Markdown changes take effect on the next build/deployment.
 
@@ -40,7 +40,7 @@ The repository is configured for Netlify in `netlify.toml`: build command `npm r
 3. Keep the repository root as the base directory and the build/publish settings above. Use a Node version compatible with the installed Next.js version, matching local development.
 4. Set `NEXT_PUBLIC_SITE_URL=https://petit.software`. Set `RESEND_API_KEY` for email signups; CMRA pages need no API key. Keep secrets in Netlify environment variables.
 5. Review a deploy preview, then merge/push to the configured production branch to trigger deployment if continuous deployment is enabled. Confirm `petit.software` is assigned to the project and DNS is configured in Netlify.
-6. Verify `/cmra` and `/cmra/privacy` on the deployed site.
+6. Verify `/cmra`, `/cmra/privacy`, and `/cmra/support` on the deployed site.
 
 No Netlify project ID, confirmed production branch, or deployment credentials are recorded in this repository. See [Netlify’s Next.js deployment guide](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/) for the adapter and Git connection workflow.
 
