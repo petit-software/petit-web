@@ -1,0 +1,39 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import LogoWordmark from "@/components/LogoWordmark";
+import ThemeToggle from "@/components/ThemeToggle";
+
+export default function CmraLayout({ children }: { children: React.ReactNode }) {
+  const isLanding = usePathname() === "/cmra";
+
+  return (
+    <div className={`flex min-h-svh flex-col ${isLanding ? "bg-white text-neutral-950" : ""}`}>
+      <header className="grid w-full grid-cols-3 items-center px-6 py-6">
+        <Link href="/" aria-label="Petit home" className="justify-self-start rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4">
+          <LogoWordmark height={22} />
+        </Link>
+        <Link href="/cmra" aria-label="CMRA home" className="justify-self-center rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4">
+          <Image
+            src="/images/cmra-icon.png"
+            alt="CMRA app icon"
+            width={56}
+            height={56}
+            sizes="56px"
+            priority
+          />
+        </Link>
+        <div className="justify-self-end">
+          <ThemeToggle />
+        </div>
+      </header>
+      <main className={`relative flex-1 ${isLanding ? "min-h-80" : ""}`}>{children}</main>
+      <nav aria-label="CMRA" className={`mx-auto flex w-full max-w-3xl flex-wrap gap-x-6 gap-y-3 px-6 py-6 text-sm ${isLanding ? "text-neutral-600" : "border-t text-muted-foreground"}`}>
+        <Link className="hover:underline underline-offset-4" href="/cmra">CMRA</Link>
+        <Link className="hover:underline underline-offset-4" href="/cmra/privacy">Privacy Policy</Link>
+      </nav>
+    </div>
+  );
+}

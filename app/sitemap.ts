@@ -4,6 +4,7 @@ import type { MetadataRoute } from "next";
 import { getLandingSlugs } from "@/lib/landing-pages";
 import { landingSourcePath } from "@/lib/markdown";
 import { siteUrl } from "@/lib/metadata";
+import { cmraDocuments, cmraSourcePath, loadCmraContent } from "@/lib/cmra";
 
 // `changeFrequency` and `priority` are deliberately omitted: Google has said
 // outright that it ignores both. `lastModified` is the only hint it acts on,
@@ -39,7 +40,13 @@ function productsModifiedAt(): Date {
 
 // Only indexable routes belong here. /temp is a duplicate of "/" and carries
 // noindex; the API routes are not pages.
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const cmraPages = await Promise.all(
+    (["index", ...cmraDocuments] as const).map(async (page) => ({
+      page,
+      content: await loadCmraContent(page),
+    })),
+  );
   return [
     {
       url: siteUrl("/"),
@@ -52,6 +59,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...getLandingSlugs().map((slug) => ({
       url: siteUrl(`/${slug}`),
       lastModified: modifiedAt(landingSourcePath(slug)),
+    })),
+    ...cmraPages.filter(({ content }) => !content.draft).map(({ page }) => ({
+      url: siteUrl(page === "index" ? "/cmra" : `/cmra/${page}`),
+      lastModified: modifiedAt(cmraSourcePath(page)),
     })),
   ];
 }
