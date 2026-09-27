@@ -27,7 +27,7 @@ The legacy `npm run lint` script uses `next lint`, which is unavailable in Next.
 
 ## CMRA pages
 
-`/cmra` links to `/cmra/privacy` and `/cmra/support`. The landing page displays a full-page background image; its metadata comes from `content/cmra/index.md`. The privacy page renders `content/cmra/privacy.md` using the existing Markdown renderer. The support page displays centered help text and an email button linking to `dev@petit.software`. The dedicated routes live in `app/cmra/`; `lib/cmra.ts` loads content and generates metadata. No landing-page registry entry is needed.
+`/cmra` links to `/cmra/privacy` and `/cmra/support`. The landing page displays a white Three.js phone with a mouse-driven tilt and the screenshot in `public/images/cmra-screen.png`; its metadata comes from `content/cmra/index.md`. The model lives in `components/CmraPhone/`, loads on the client, respects reduced motion, and falls back to a static phone if WebGL is unavailable. The privacy page renders `content/cmra/privacy.md` using the existing Markdown renderer. The support page displays centered help text and an email button linking to `dev@petit.software`. The dedicated routes live in `app/cmra/`; `lib/cmra.ts` loads content and generates metadata. No landing-page registry entry is needed.
 
 Edit `index.md` for landing-page metadata or `privacy.md` for policy content. Keep the `title` and `description` frontmatter, and include one `#` heading in the privacy policy body. The privacy policy contains the supplied draft, including its unresolved `TK` notes. Finalize the Markdown and remove `draft: true` when ready. Draft pages remain accessible but request no indexing and are excluded from the sitemap. Markdown changes take effect on the next build/deployment.
 

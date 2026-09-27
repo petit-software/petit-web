@@ -1,4 +1,4 @@
-import Image from "next/image";
+import CmraPhone from "@/components/CmraPhone/CmraPhone";
 import { cmraMetadata } from "@/lib/cmra";
 
 export function generateMetadata() {
@@ -6,16 +6,5 @@ export function generateMetadata() {
 }
 
 export default function CmraPage() {
-  return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-      <Image
-        src="/images/cmra-app.jpg"
-        alt=""
-        fill
-        sizes="100vw"
-        priority
-        className="object-contain object-center"
-      />
-    </div>
-  );
+  return <CmraPhone />;
 }
