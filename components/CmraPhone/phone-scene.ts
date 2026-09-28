@@ -70,12 +70,49 @@ export function createPhoneScene(
   bodyGeometry.translate(0, 0, -0.12);
   phone.add(new THREE.Mesh(bodyGeometry, casing));
 
+  // Positive local X is the left side when looking at the phone's back.
+  const rearCamera = new THREE.Group();
+  rearCamera.position.set(0.94, 2.5, -0.155);
+  rearCamera.rotation.x = -Math.PI / 2;
+  const cameraRing = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.265, 0.28, 0.095, 64),
+    new THREE.MeshStandardMaterial({ color: 0xbfc2c8, metalness: 0.85, roughness: 0.23 }),
+  );
+  cameraRing.position.y = 0.045;
+  rearCamera.add(cameraRing);
+  const lens = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.215, 0.215, 0.015, 64),
+    new THREE.MeshStandardMaterial({ color: 0x080c16, metalness: 0.35, roughness: 0.12 }),
+  );
+  lens.position.y = 0.1;
+  rearCamera.add(lens);
+  const innerLens = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.115, 0.115, 0.005, 64),
+    new THREE.MeshStandardMaterial({ color: 0x172c46, metalness: 0.6, roughness: 0.08 }),
+  );
+  innerLens.position.y = 0.11;
+  rearCamera.add(innerLens);
+  phone.add(rearCamera);
+
+  let failed = false;
+  const loading = new THREE.LoadingManager();
+  loading.onLoad = () => {
+    if (disposed || failed) return;
+    loaded = true;
+    render();
+    callbacks.onReady();
+  };
+  loading.onError = () => {
+    failed = true;
+    if (!disposed) callbacks.onError();
+  };
+
   // Rasterize the SVG at 4× its intrinsic size for a sharp WebGL texture.
   const labelCanvas = document.createElement("canvas");
   labelCanvas.width = 229 * 4;
   labelCanvas.height = 51 * 4;
   const labelTexture = new THREE.CanvasTexture(labelCanvas);
-  new THREE.ImageLoader().load(
+  new THREE.ImageLoader(loading).load(
     "/images/cmra-label.svg",
     (image) => {
       if (disposed) return;
@@ -133,17 +170,7 @@ export function createPhoneScene(
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const pointer = window.matchMedia("(hover: hover) and (pointer: fine)");
 
-  const texture = new THREE.TextureLoader().load(
-    "/images/cmra-screen.png",
-    () => {
-      if (disposed) return;
-      loaded = true;
-      render();
-      callbacks.onReady();
-    },
-    undefined,
-    () => { if (!disposed) callbacks.onError(); },
-  );
+  const texture = new THREE.TextureLoader(loading).load("/images/cmra-screen.png");
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   const screen = new THREE.Mesh(screenGeometry, new THREE.MeshBasicMaterial({ map: texture, toneMapped: false }));
