@@ -35,8 +35,8 @@ export default function CmraPhone() {
   return (
     <div
       className="relative mx-auto min-h-[380px] w-full flex-1"
-      role="img"
-      aria-label="CMRA running on a white iPhone with an uninterrupted display. The phone tilts gently with mouse movement."
+      role={ready ? undefined : "img"}
+      aria-label={ready ? undefined : "CMRA running on a white iPhone with an uninterrupted display."}
     >
       <div
         aria-hidden="true"
@@ -56,8 +56,11 @@ export default function CmraPhone() {
       </div>
       <canvas
         ref={canvasRef}
-        aria-hidden="true"
-        className={`absolute inset-0 block h-full w-full transition-opacity duration-300 motion-reduce:transition-none ${ready ? "opacity-100" : "opacity-0"}`}
+        role="button"
+        aria-label="Rotate the CMRA phone 180 degrees"
+        aria-hidden={!ready}
+        tabIndex={ready ? 0 : -1}
+        className={`absolute inset-0 block h-full w-full cursor-pointer transition-opacity duration-300 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-4 ${ready ? "opacity-100" : "opacity-0"}`}
       />
     </div>
   );

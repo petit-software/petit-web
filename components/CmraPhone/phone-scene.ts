@@ -70,6 +70,38 @@ export function createPhoneScene(
   bodyGeometry.translate(0, 0, -0.12);
   phone.add(new THREE.Mesh(bodyGeometry, casing));
 
+  // Rasterize the SVG at 4× its intrinsic size for a sharp WebGL texture.
+  const labelCanvas = document.createElement("canvas");
+  labelCanvas.width = 229 * 4;
+  labelCanvas.height = 51 * 4;
+  const labelTexture = new THREE.CanvasTexture(labelCanvas);
+  new THREE.ImageLoader().load(
+    "/images/cmra-label.svg",
+    (image) => {
+      if (disposed) return;
+      const context = labelCanvas.getContext("2d");
+      if (context) {
+        context.drawImage(image, 0, 0, labelCanvas.width, labelCanvas.height);
+        labelTexture.needsUpdate = true;
+      }
+      render();
+    },
+  );
+  labelTexture.colorSpace = THREE.SRGBColorSpace;
+  labelTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  const backLabel = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.4, 1.4 * 51 / 229),
+    new THREE.MeshStandardMaterial({
+      map: labelTexture,
+      transparent: true,
+      roughness: 0.6,
+      depthWrite: false,
+    }),
+  );
+  backLabel.rotation.y = Math.PI;
+  backLabel.position.set(0, -2.45, -0.158);
+  phone.add(backLabel);
+
   const bezel = new THREE.Mesh(
     new THREE.ShapeGeometry(smoothRectangle(2.85, 6.09, 0.72)),
     new THREE.MeshBasicMaterial({ color: 0x090a0c }),
@@ -94,6 +126,9 @@ export function createPhoneScene(
   let previousTime = 0;
   const rest = { x: -0.035, y: -0.19 };
   const target = { ...rest };
+  let rotation = 0;
+  const raycaster = new THREE.Raycaster();
+  const pointerPosition = new THREE.Vector2();
   phone.rotation.set(rest.x, rest.y, -0.025);
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const pointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -144,21 +179,49 @@ export function createPhoneScene(
     if (motion.matches || !pointer.matches || event.pointerType !== "mouse") return;
     const x = THREE.MathUtils.clamp(event.clientX / window.innerWidth * 2 - 1, -1, 1);
     const y = THREE.MathUtils.clamp(event.clientY / window.innerHeight * 2 - 1, -1, 1);
-    target.y = rest.y + x * 0.23;
-    target.x = rest.x + y * 0.09;
+    target.y = rest.y + rotation + x * 0.5;
+    target.x = rest.x + y * 0.2;
     schedule();
   }
 
   function reset() {
     target.x = rest.x;
-    target.y = rest.y;
+    target.y = rest.y + rotation;
     if (motion.matches) {
       cancelAnimationFrame(frame);
       frame = 0;
       phone.rotation.x = rest.x;
-      phone.rotation.y = rest.y;
+      phone.rotation.y = target.y;
       render();
     } else schedule();
+  }
+
+  function rotate() {
+    if (!loaded || disposed) return;
+    rotation += Math.PI;
+    target.y += Math.PI;
+    if (motion.matches) {
+      phone.rotation.y = target.y;
+      render();
+    } else schedule();
+  }
+
+  function click(event: MouseEvent) {
+    const { left, top, width, height } = canvas.getBoundingClientRect();
+    if (!width || !height) return;
+    pointerPosition.set(
+      (event.clientX - left) / width * 2 - 1,
+      -(event.clientY - top) / height * 2 + 1,
+    );
+    phone.updateMatrixWorld(true);
+    raycaster.setFromCamera(pointerPosition, camera);
+    if (raycaster.intersectObject(phone, true).length) rotate();
+  }
+
+  function keydown(event: KeyboardEvent) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    if (!event.repeat) rotate();
   }
 
   const container = canvas.parentElement!;
@@ -204,6 +267,8 @@ export function createPhoneScene(
   pointer.addEventListener("change", reset);
   canvas.addEventListener("webglcontextlost", contextLost);
   canvas.addEventListener("webglcontextrestored", contextRestored);
+  canvas.addEventListener("click", click);
+  canvas.addEventListener("keydown", keydown);
 
   return () => {
     disposed = true;
@@ -218,6 +283,8 @@ export function createPhoneScene(
     pointer.removeEventListener("change", reset);
     canvas.removeEventListener("webglcontextlost", contextLost);
     canvas.removeEventListener("webglcontextrestored", contextRestored);
+    canvas.removeEventListener("click", click);
+    canvas.removeEventListener("keydown", keydown);
     const materials = new Set<THREE.Material>();
     phone.traverse((object) => {
       if (object instanceof THREE.Mesh) {
@@ -228,6 +295,7 @@ export function createPhoneScene(
     });
     materials.forEach((material) => material.dispose());
     texture.dispose();
+    labelTexture.dispose();
     environmentMap.dispose();
     renderer.dispose();
   };

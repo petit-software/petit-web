@@ -29,20 +29,22 @@ export default function CmraLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
       <main className={`relative flex flex-1 flex-col ${isLanding ? "min-h-80" : ""}`}>{children}</main>
-      <nav aria-label="CMRA" className={`mx-auto flex w-full max-w-3xl flex-wrap justify-center gap-x-6 gap-y-3 px-6 py-6 text-center text-sm font-medium text-[#a8a8a8] ${isLanding ? "" : "border-t"}`}>
+      <nav aria-label="CMRA" className="mx-auto flex w-full max-w-3xl flex-wrap justify-center gap-x-6 gap-y-3 px-6 py-6 text-center text-sm font-medium text-[#a8a8a8]">
         <Link className="hover:underline underline-offset-4" href="/cmra">CMRA</Link>
         <Link className="hover:underline underline-offset-4" href="/cmra/support">Support</Link>
         <Link className="hover:underline underline-offset-4" href="/cmra/privacy">Privacy Policy</Link>
       </nav>
-      <div className="flex justify-center px-6 pt-2 pb-8">
-        <Image
-          src="/images/cmra-label.svg"
-          alt="CMRA APP — ZRH/CH/26 — NOT INC."
-          width={229}
-          height={51}
-          className="h-auto max-w-[168px]"
-        />
-      </div>
+      {!isLanding && (
+        <div className="flex justify-center px-6 pt-2 pb-8">
+          <Image
+            src="/images/cmra-label.svg"
+            alt="CMRA APP — ZRH/CH/26 — NOT INC."
+            width={229}
+            height={51}
+            className="h-auto max-w-[168px]"
+          />
+        </div>
+      )}
     </div>
   );
 }
