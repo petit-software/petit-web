@@ -22,9 +22,7 @@ You can change camera, photo library, and location permissions in iOS Settings. 
 
 When you tap Send in the feedback form, CMRA sends your feedback type, title, message, app version, build number, iOS version, device model, and any email address you provide. An email address is required for questions so we can reply; it is optional for other feedback.
 
-Feedback passes through Cloudflare and is stored in GitHub to help us answer questions, investigate problems, and improve CMRA. Photos and camera footage are not attached. We do not sell your feedback or use it for advertising.
-
-[TK: Confirm how long feedback and contact details are retained, when they are deleted, and whether the GitHub feedback repository is private. Confirm that service providers protect this information to the standard described in this policy before publication.]
+A Cloudflare Worker forwards your form submission to a private GitHub repository, where we store your feedback to help us answer questions, investigate problems, and improve CMRA. Photos and camera footage are not attached. We do not sell your feedback or use it for advertising.
 
 ## Optional App Store purchases
 
