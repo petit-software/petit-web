@@ -1,0 +1,129 @@
+.hero {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Keep the opening scene centered independently of the final two-column grid.
+   The grid reserves its final space throughout, avoiding layout shifts. */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.quote,
+.title {
+  text-wrap: balance;
+}
+
+.quoteWord,
+.quoteWordIn,
+.titleWord {
+  display: inline-block;
+}
+
+/* The last word enters at 850ms. Hold the complete quote for 1700ms,
+   then fade its words out in reading order over 710ms. */
+.quoteWord {
+  animation: quote-out 350ms var(--ease-out) calc(2550ms + var(--word-index) * 40ms) both paused;
+}
+
+.quoteWordIn {
+  animation: rise-in 400ms var(--ease-out) calc(var(--word-index) * 50ms) both paused;
+}
+
+.hero[data-mounted="true"] .quoteWord,
+.hero[data-mounted="true"] .quoteWordIn {
+  animation-play-state: running;
+}
+
+.titleWord,
+.button {
+  opacity: 0;
+}
+
+/* Start only after every quote word has left. Completion of the final title
+   word cues the button; completion of the button cues the preloaded phone. */
+.hero:not([data-stage="intro"]) .titleWord {
+  animation: rise-in 400ms var(--ease-out) calc(80ms + var(--word-index) * 60ms) both;
+}
+
+.hero[data-stage="button"] .button,
+.hero[data-stage="phone"] .button {
+  animation: button-in 300ms var(--ease-out) 60ms both;
+}
+
+@keyframes button-in {
+  from {
+    opacity: 0;
+    transform: scale(1.25);
+    filter: blur(16px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes quote-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  45% {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: blur(16px);
+  }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the narrative with gentle whole-phrase fades and no movement. */
+  .quoteWordIn {
+    animation-name: fade-in;
+    animation-duration: 200ms;
+    animation-delay: 0ms;
+  }
+
+  .quoteWord {
+    animation-name: fade-out;
+    animation-duration: 200ms;
+    animation-delay: 2000ms;
+  }
+
+  .hero:not([data-stage="intro"]) .titleWord,
+  .hero[data-stage="button"] .button,
+  .hero[data-stage="phone"] .button {
+    animation-name: fade-in;
+    animation-duration: 200ms;
+    animation-delay: 0ms;
+  }
+}
