@@ -164,6 +164,8 @@ export function createPhoneScene(
   const rest = { x: -0.035, y: -0.19 };
   const target = { ...rest };
   let rotation = 0;
+  let showingBack = false;
+  let returnTimer: ReturnType<typeof setTimeout> | undefined;
   const raycaster = new THREE.Raycaster();
   const pointerPosition = new THREE.Vector2();
   phone.rotation.set(rest.x, rest.y, -0.025);
@@ -225,12 +227,16 @@ export function createPhoneScene(
 
   function rotate() {
     if (!loaded || disposed) return;
+    clearTimeout(returnTimer);
+    returnTimer = undefined;
+    showingBack = !showingBack;
     rotation += Math.PI;
     target.y += Math.PI;
     if (motion.matches) {
       phone.rotation.y = target.y;
       render();
     } else schedule();
+    if (showingBack) returnTimer = setTimeout(rotate, 3000);
   }
 
   function click(event: MouseEvent) {
@@ -299,6 +305,7 @@ export function createPhoneScene(
 
   return () => {
     disposed = true;
+    clearTimeout(returnTimer);
     cancelAnimationFrame(frame);
     observer.disconnect();
     intersection.disconnect();
