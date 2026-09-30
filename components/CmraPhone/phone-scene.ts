@@ -55,11 +55,11 @@ export function createPhoneScene(
   const casing = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     metalness: 0,
-    roughness: 0.3,
-    envMapIntensity: 0.8,
+    roughness: 1,
+    envMapIntensity: 0.35,
   });
-  const bodyGeometry = new THREE.ExtrudeGeometry(smoothRectangle(2.93, 6.17, 0.76), {
-    depth: 0.24,
+  const bodyGeometry = new THREE.ExtrudeGeometry(smoothRectangle(2.93, 6.17, 0.67), {
+    depth: 0.16,
     bevelEnabled: true,
     bevelSize: 0.035,
     bevelThickness: 0.035,
@@ -67,12 +67,12 @@ export function createPhoneScene(
     steps: 1,
     curveSegments: 24,
   });
-  bodyGeometry.translate(0, 0, -0.12);
+  bodyGeometry.translate(0, 0, -0.08);
   phone.add(new THREE.Mesh(bodyGeometry, casing));
 
   // Positive local X is the left side when looking at the phone's back.
   const rearCamera = new THREE.Group();
-  rearCamera.position.set(0.94, 2.5, -0.155);
+  rearCamera.position.set(0.94, 2.5, -0.115);
   rearCamera.rotation.x = -Math.PI / 2;
   const cameraRing = new THREE.Mesh(
     new THREE.CylinderGeometry(0.265, 0.28, 0.095, 64),
@@ -136,20 +136,20 @@ export function createPhoneScene(
     }),
   );
   backLabel.rotation.y = Math.PI;
-  backLabel.position.set(0, -2.45, -0.158);
+  backLabel.position.set(0, -2.45, -0.118);
   phone.add(backLabel);
 
   const bezel = new THREE.Mesh(
-    new THREE.ShapeGeometry(smoothRectangle(2.85, 6.09, 0.72)),
+    new THREE.ShapeGeometry(smoothRectangle(2.89, 6.13, 0.65)),
     new THREE.MeshBasicMaterial({ color: 0x090a0c }),
   );
-  bezel.position.z = 0.158;
+  bezel.position.z = 0.118;
   phone.add(bezel);
 
   // Keep the supplied screenshot's aspect ratio; only its black corners are masked.
   const screenHeight = 6;
   const screenWidth = screenHeight * (1206 / 2622);
-  const screenGeometry = new THREE.ShapeGeometry(smoothRectangle(screenWidth, screenHeight, 0.675));
+  const screenGeometry = new THREE.ShapeGeometry(smoothRectangle(screenWidth, screenHeight, 0.585));
   const positions = screenGeometry.getAttribute("position");
   const uv = screenGeometry.getAttribute("uv");
   for (let i = 0; i < positions.count; i++) {
@@ -161,26 +161,76 @@ export function createPhoneScene(
   let visible = true;
   let frame = 0;
   let previousTime = 0;
-  const rest = { x: -0.035, y: -0.19 };
+  const rest = { x: -0.335, y: -0.19 };
   const target = { ...rest };
   let rotation = 0;
   let showingBack = false;
   let returnTimer: ReturnType<typeof setTimeout> | undefined;
   const raycaster = new THREE.Raycaster();
   const pointerPosition = new THREE.Vector2();
-  phone.rotation.set(rest.x, rest.y, -0.025);
+  phone.rotation.set(rest.x, rest.y, 0);
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const pointer = window.matchMedia("(hover: hover) and (pointer: fine)");
 
   const texture = new THREE.TextureLoader(loading).load("/images/cmra-screen.png");
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  const screen = new THREE.Mesh(screenGeometry, new THREE.MeshBasicMaterial({ map: texture, toneMapped: false }));
-  screen.position.z = 0.164;
+  const screenMaterial = new THREE.MeshBasicMaterial({ map: texture, toneMapped: false });
+  const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+  screen.position.z = 0.124;
   phone.add(screen);
+
+  // The screen recording replaces the still once its first frame decodes. It stays
+  // out of the loading manager, so a slow or blocked video just leaves the still up.
+  const video = document.createElement("video");
+  const frameCallbacks = "requestVideoFrameCallback" in video;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = frameCallbacks && !motion.matches ? "auto" : "none";
+  video.src = "/images/cmra-screen.mp4";
+  const videoTexture = new THREE.VideoTexture(video);
+  videoTexture.colorSpace = THREE.SRGBColorSpace;
+  videoTexture.generateMipmaps = true;
+  videoTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  videoTexture.anisotropy = texture.anisotropy;
+  let revealed = false;
+  let videoFrame = 0;
+  // Yaw at which a finished recording restarts: halfway through its closing spin.
+  let replayAt: number | undefined;
 
   function render() {
     if (!disposed && visible && !document.hidden) renderer.render(scene, camera);
+  }
+
+  function paintVideoFrame() {
+    videoTexture.needsUpdate = true;
+    // The tilt loop already paints every frame while it runs.
+    if (!frame) render();
+    videoFrame = video.requestVideoFrameCallback(paintVideoFrame);
+  }
+
+  function showVideo() {
+    if (disposed) return;
+    screenMaterial.map = videoTexture;
+    paintVideoFrame();
+  }
+
+  function syncVideo() {
+    if (disposed) return;
+    if (frameCallbacks && revealed && visible && !showingBack && replayAt === undefined && !document.hidden && !motion.matches) {
+      // Rejects when autoplay is blocked or a pause lands first; the screen keeps its last frame.
+      // Playing a finished recording restarts it, which is what loops it.
+      video.play().catch(() => {});
+    } else video.pause();
+  }
+
+  // The recording ends with a full turn, front to front. It restarts while the
+  // back is facing, so the screen comes round already on its first frames.
+  function videoEnded() {
+    rotation += Math.PI * 2;
+    target.y += Math.PI * 2;
+    replayAt = phone.rotation.y + Math.PI;
+    schedule();
   }
 
   function tick(time: number) {
@@ -188,9 +238,13 @@ export function createPhoneScene(
     if (disposed || !visible || document.hidden) return;
     const delta = previousTime ? Math.min((time - previousTime) / 1000, 0.05) : 1 / 60;
     previousTime = time;
-    const ease = 1 - Math.exp(-7 * delta);
+    const ease = 1 - Math.exp(-8 * delta);
     phone.rotation.x += (target.x - phone.rotation.x) * ease;
     phone.rotation.y += (target.y - phone.rotation.y) * ease;
+    if (replayAt !== undefined && phone.rotation.y >= replayAt) {
+      replayAt = undefined;
+      syncVideo();
+    }
     render();
     if (Math.abs(target.x - phone.rotation.x) + Math.abs(target.y - phone.rotation.y) > 0.0001) {
       frame = requestAnimationFrame(tick);
@@ -209,7 +263,7 @@ export function createPhoneScene(
     const x = THREE.MathUtils.clamp(event.clientX / window.innerWidth * 2 - 1, -1, 1);
     const y = THREE.MathUtils.clamp(event.clientY / window.innerHeight * 2 - 1, -1, 1);
     target.y = rest.y + rotation + x * 0.5;
-    target.x = rest.x + y * 0.2;
+    target.x = rest.x + y * 0.3;
     schedule();
   }
 
@@ -236,7 +290,8 @@ export function createPhoneScene(
       phone.rotation.y = target.y;
       render();
     } else schedule();
-    if (showingBack) returnTimer = setTimeout(rotate, 3000);
+    if (showingBack) returnTimer = setTimeout(rotate, 500);
+    syncVideo();
   }
 
   function click(event: MouseEvent) {
@@ -277,10 +332,12 @@ export function createPhoneScene(
   const intersection = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     if (visible) { render(); schedule(); }
+    syncVideo();
   });
   intersection.observe(container);
   function visibility() {
     if (!document.hidden) { render(); schedule(); }
+    syncVideo();
   }
   function contextLost(event: Event) {
     event.preventDefault();
@@ -297,16 +354,30 @@ export function createPhoneScene(
   window.addEventListener("blur", reset);
   document.addEventListener("visibilitychange", visibility);
   motion.addEventListener("change", reset);
+  motion.addEventListener("change", syncVideo);
   pointer.addEventListener("change", reset);
   canvas.addEventListener("webglcontextlost", contextLost);
   canvas.addEventListener("webglcontextrestored", contextRestored);
   canvas.addEventListener("click", click);
   canvas.addEventListener("keydown", keydown);
+  video.addEventListener("loadeddata", showVideo, { once: true });
+  video.addEventListener("ended", videoEnded);
 
-  return () => {
+  function setRevealed(value: boolean) {
+    revealed = value;
+    syncVideo();
+  }
+
+  function dispose() {
     disposed = true;
     clearTimeout(returnTimer);
     cancelAnimationFrame(frame);
+    if (videoFrame) video.cancelVideoFrameCallback(videoFrame);
+    video.removeEventListener("loadeddata", showVideo);
+    video.removeEventListener("ended", videoEnded);
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
     observer.disconnect();
     intersection.disconnect();
     window.removeEventListener("pointermove", move);
@@ -314,6 +385,7 @@ export function createPhoneScene(
     window.removeEventListener("blur", reset);
     document.removeEventListener("visibilitychange", visibility);
     motion.removeEventListener("change", reset);
+    motion.removeEventListener("change", syncVideo);
     pointer.removeEventListener("change", reset);
     canvas.removeEventListener("webglcontextlost", contextLost);
     canvas.removeEventListener("webglcontextrestored", contextRestored);
@@ -329,8 +401,11 @@ export function createPhoneScene(
     });
     materials.forEach((material) => material.dispose());
     texture.dispose();
+    videoTexture.dispose();
     labelTexture.dispose();
     environmentMap.dispose();
     renderer.dispose();
-  };
+  }
+
+  return { setRevealed, dispose };
 }
