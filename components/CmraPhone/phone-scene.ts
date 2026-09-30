@@ -212,6 +212,9 @@ export function createPhoneScene(
   function showVideo() {
     if (disposed) return;
     screenMaterial.map = videoTexture;
+    // Video frames are decoded from sRGB in the shader, not on upload like the still,
+    // so the program has to be rebuilt for the new map or the picture washes out.
+    screenMaterial.needsUpdate = true;
     paintVideoFrame();
   }
 
