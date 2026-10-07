@@ -86,9 +86,11 @@ export default function EmailSignup({
             )}
           </InputGroup>
           {stacked && (
-            <Button type="submit" size="lg" className="w-full" disabled={disabled}>
-              {status === "loading" ? "Sending…" : buttonLabel}
-            </Button>
+            <div className="flex justify-center">
+              <Button type="submit" size="xl" disabled={disabled}>
+                {status === "loading" ? "Sending…" : buttonLabel}
+              </Button>
+            </div>
           )}
         </Field>
       </FieldGroup>
