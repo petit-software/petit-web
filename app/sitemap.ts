@@ -57,6 +57,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: modifiedAt(fromRoot("app", "clarity", "page.tsx")),
     },
     {
+      url: siteUrl("/ultra"),
+      lastModified: modifiedAt(fromRoot("app", "ultra", "page.tsx")),
+    },
+    {
       url: siteUrl("/cmra/support"),
       lastModified: modifiedAt(fromRoot("app", "cmra", "support", "page.tsx")),
     },
