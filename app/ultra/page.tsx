@@ -41,6 +41,15 @@ export default function UltraPage() {
       </header>
       <main className="mx-auto flex w-full max-w-7xl flex-col items-center px-4 pt-6 pb-16 text-center sm:px-8 sm:pt-2 sm:pb-20">
         <div className="mt-8 mb-8 flex flex-col items-center gap-7 px-2 sm:mt-10 sm:mb-10 sm:gap-8">
+          <Image
+            src="/images/ultra-icon.png"
+            alt="Ultra app icon"
+            width={96}
+            height={96}
+            sizes="(min-width: 640px) 96px, 80px"
+            priority
+            className="size-20 sm:size-24"
+          />
           <h1 className="max-w-3xl text-4xl leading-[1.05] font-medium tracking-[-0.045em] text-balance sm:text-6xl md:text-7xl">
             Terminal for Software Builders
           </h1>
