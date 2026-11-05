@@ -68,6 +68,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: siteUrl("/clio/privacy"),
       lastModified: modifiedAt(fromRoot("app", "clio", "privacy", "page.tsx")),
     },
+    {
+      url: siteUrl("/clio/support"),
+      lastModified: modifiedAt(fromRoot("app", "clio", "support", "page.tsx")),
+    },
     ...getLandingSlugs().map((slug) => ({
       url: siteUrl(`/${slug}`),
       lastModified: modifiedAt(landingSourcePath(slug)),
