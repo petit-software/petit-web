@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowDown } from "lucide-react";
 import UltraAudience from "@/components/UltraAudience";
 import { siteUrl } from "@/lib/metadata";
-import { loadUltraMarkdown } from "@/lib/ultra";
-
-const headline = "Agentic Terminal for Software Builders";
-const title = `Ultra — ${headline}`;
-const description = "Ultra is a native macOS terminal for coding agents. Project instructions let your agent manage todos, open URLs, and show files in editors inside Ultra.";
+import {
+  loadUltraMarkdown,
+  ULTRA_HEADLINE as headline,
+  ULTRA_TITLE as title,
+  ULTRA_DESCRIPTION as description,
+  ULTRA_DOWNLOAD_URL,
+  ULTRA_IMAGE_ALT,
+} from "@/lib/ultra";
 
 const panels = [
   ["Shell", "Run commands in a terminal that keeps working as you rearrange your panes."],
@@ -27,6 +29,10 @@ const panels = [
 export const metadata: Metadata = {
   title,
   description,
+  applicationName: "Ultra",
+  authors: [{ name: "Petit", url: siteUrl() }],
+  category: "Developer Tools",
+  keywords: ["Ultra", "macOS terminal", "agentic terminal", "coding agents", "Codex", "Claude Code", "Gemini", "native Mac app", "Petit"],
   alternates: {
     canonical: "/ultra",
     types: { "text/markdown": siteUrl("/ultra.md") },
@@ -35,20 +41,28 @@ export const metadata: Metadata = {
     title,
     description,
     url: siteUrl("/ultra"),
-    images: [{ url: "/images/ultra-demo-poster.webp", width: 2224, height: 1112 }],
+    type: "website",
+    siteName: "Petit",
+    locale: "en_US",
+    images: [{ url: siteUrl("/ultra/opengraph-image"), width: 1200, height: 630, type: "image/png", alt: ULTRA_IMAGE_ALT }],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
-    images: ["/images/ultra-demo-poster.webp"],
+    images: [{ url: siteUrl("/ultra/opengraph-image"), alt: ULTRA_IMAGE_ALT }],
   },
 };
 
 export default async function UltraPage() {
   const markdown = await loadUltraMarkdown();
+  const now = new Date();
+  const initialDate = {
+    iso: now.toISOString(),
+    label: new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" }).format(now),
+  };
   return (
-    <UltraAudience markdown={markdown} title={headline}>
+    <UltraAudience markdown={markdown} title={title} downloadUrl={ULTRA_DOWNLOAD_URL} initialDate={initialDate}>
       <main className="mx-auto flex w-full max-w-7xl flex-col items-center px-4 pt-6 pb-16 text-center sm:px-8 sm:pt-2 sm:pb-20">
         <div className="mt-8 mb-8 flex flex-col items-center gap-7 px-2 sm:mt-10 sm:mb-10 sm:gap-8">
           <Image
@@ -64,10 +78,9 @@ export default async function UltraPage() {
             {headline}
           </h1>
           <a
-            href="https://github.com/petit-software/ultra-swift"
+            href={ULTRA_DOWNLOAD_URL}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-base font-medium text-black transition-colors hover:bg-white/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
-            <ArrowDown aria-hidden="true" className="size-4" />
             Download
           </a>
         </div>
