@@ -33,6 +33,13 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/ultra",
+        headers: [{
+          key: "Link",
+          value: '</ultra.md>; rel="alternate"; type="text/markdown", </ultra/llms.txt>; rel="describedby"',
+        }],
+      },
+      {
         source: "/cmra",
         headers: [{
           key: "Link",

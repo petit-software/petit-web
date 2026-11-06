@@ -3,6 +3,7 @@ import { loadLandingContent, resolveImagePath } from "@/lib/markdown";
 import { SITE_DESCRIPTION, SITE_EMAIL, SITE_NAME, siteUrl } from "@/lib/metadata";
 import { getProducts } from "@/lib/products";
 import { loadCmraContent } from "@/lib/cmra";
+import { loadUltraMarkdown } from "@/lib/ultra";
 
 export const dynamic = "force-static";
 export const dynamicParams = false;
@@ -19,7 +20,7 @@ export const dynamicParams = false;
 const HOME = "index";
 
 export function generateStaticParams() {
-  return [{ slug: HOME }, { slug: "cmra" }, ...getLandingSlugs().map((slug) => ({ slug }))];
+  return [{ slug: HOME }, { slug: "cmra" }, { slug: "ultra" }, ...getLandingSlugs().map((slug) => ({ slug }))];
 }
 
 const markdown = (body: string) =>
@@ -92,6 +93,7 @@ export async function GET(
   const { slug } = await params;
 
   if (slug === HOME) return markdown(`${homeMarkdown()}\n`);
+  if (slug === "ultra") return markdown(await loadUltraMarkdown());
   if (slug === "cmra") {
     const content = await loadCmraContent("index");
     return markdown([

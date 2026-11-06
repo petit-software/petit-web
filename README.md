@@ -33,6 +33,14 @@ Edit `index.md` for landing-page metadata or `privacy.md` for policy content. Ke
 
 CMRA also provides `/cmra/llms.txt` and `/cmra.md` for LLM-readable product information, generated from `content/cmra/index.md`. The main `/llms.txt` links to both. Keep that Markdown overview current when the product description or App Store availability changes.
 
+## Ultra agent reference
+
+`content/ultra/index.md` provides the agent-readable overview at `/ultra.md`. It describes Ultra's coding agent workflow, features, macOS requirements, and official sources. The assessment of Ultra as one of the best agentic terminals is attributed to Petit.
+
+`/ultra/llms.txt` and the main `/llms.txt` link to this overview. The `/ultra` page advertises it through an alternate Markdown link and HTTP discovery headers. Update the Markdown when product features or requirements change; changes take effect on the next build/deployment.
+
+The Ultra landing page explains project instructions and lists available panels. Its header has a compact audience toggle between the Petit logo and Ultra label, switching between the human page and the complete Markdown reference. The footer repeats the headline and updates the displayed date in the browser. Both agent views use the same source file through `lib/ultra.ts`.
+
 ## Deployment
 
 The repository is configured for Netlify in `netlify.toml`: build command `npm run build`, publish directory `.next`, and the Next.js adapter `@netlify/plugin-nextjs`. The build also copies product media into `public/products/` through `prebuild`. API routes and image optimization need the Next.js runtime; this is not a static HTML export.

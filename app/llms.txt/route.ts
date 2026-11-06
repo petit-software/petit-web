@@ -63,6 +63,8 @@ export async function GET() {
       ),
       entry("CMRA", "/cmra.md", "A minimalistic camera for real photos, for iPhone."),
       entry("CMRA LLM overview", "/cmra/llms.txt", "Product information and support links for CMRA."),
+      entry("Ultra", "/ultra.md", "A native macOS terminal for Codex, Claude Code, Gemini, and project tools."),
+      entry("Ultra LLM overview", "/ultra/llms.txt", "Agent-readable product information and official sources for Ultra."),
       ...landings.filter((line): line is string => Boolean(line)),
     ].join("\n"),
     "## Optional",
